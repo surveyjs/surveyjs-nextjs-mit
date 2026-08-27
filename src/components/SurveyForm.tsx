@@ -1,7 +1,7 @@
 "use client";
 
 import "@/lib/survey-ssr-environment";
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2Icon } from "lucide-react";
 import { Survey } from "survey-react-ui";
 import type { Model, Question } from "survey-core";
@@ -11,7 +11,8 @@ import {
   type SurveyData,
   type SurveyMode,
 } from "@/schemas";
-import { readOverride } from "@/lib/schema-overrides";
+import { loadSurveyJson } from "@/storage/survey-json";
+import { submitResult } from "@/storage/survey-results";
 import { FormCompleted } from "./FormCompleted";
 
 import "survey-core/survey-core.css";
@@ -42,6 +43,10 @@ export function SurveyForm({
   schemaId?: string;
   data?: SurveyData;
   mode?: SurveyMode;
+  /**
+   * Called instead of {@link submitResponse} when the caller owns
+   * persistence itself, as the records page does.
+   */
   onComplete?: (data: SurveyData) => void;
   completedMessage?: string;
   prefillData?: SurveyData;
@@ -53,25 +58,33 @@ export function SurveyForm({
   // definition; cleared by survey-core's own "rendered" event below.
   const [swapping, setSwapping] = useState(false);
 
-  // Layout effect, not a plain effect: it runs after hydration but before the
-  // browser paints, so the canonical form is never shown to someone whose saved
-  // definition is about to replace it.
-  useLayoutEffect(() => {
-    const override = schemaId ? readOverride(schemaId) : null;
-    if (!override) return;
+  // The spinner only appears once the store has answered with a definition, so
+  // a visitor who has none never sees a loading state. Against localStorage the
+  // answer arrives in a microtask, before the browser paints; against a real
+  // server the canonical form is briefly visible first, which is honest.
+  useEffect(() => {
+    if (!schemaId) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let active = true;
 
-    // Updates from a layout effect are flushed before the browser paints, so
-    // the spinner is in the DOM by the time the timeout below fires.
-    setSwapping(true);
+    void loadSurveyJson(schemaId).then((saved) => {
+      if (!active || !saved) return;
+      setSwapping(true);
 
-    // Let the browser paint it, then swap. The delay is a floor, not the cost
-    // of the work: rebuilding the model and rendering the survey measures about
-    // 30ms, so without it the spinner lives a single frame and reads as a blink.
-    const timer = setTimeout(() => {
-      setEffectiveSchema(override);
-      setSwapping(false);
-    }, SPINNER_MIN_MS);
-    return () => clearTimeout(timer);
+      // Let the browser paint the spinner, then swap. The delay is a floor, not
+      // the cost of the work: rebuilding the model and rendering the survey
+      // measures about 30ms, so without it the spinner lives a single frame and
+      // reads as a blink.
+      timer = setTimeout(() => {
+        setEffectiveSchema(saved);
+        setSwapping(false);
+      }, SPINNER_MIN_MS);
+    });
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [schemaId, schema]);
 
   const model = useMemo(
@@ -110,11 +123,15 @@ export function SurveyForm({
   useEffect(() => {
     const handler = (sender: typeof model) => {
       setCompleted(true);
-      onComplete?.(sender.data);
+      if (onComplete) {
+        onComplete(sender.data);
+      } else if (schemaId) {
+        void submitResult(schemaId, sender.data);
+      }
     };
     model.onComplete.add(handler);
     return () => model.onComplete.remove(handler);
-  }, [model, onComplete]);
+  }, [model, onComplete, schemaId]);
 
   const handleEdit = () => {
     model.clear(false);

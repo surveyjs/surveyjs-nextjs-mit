@@ -1,10 +1,13 @@
 import { getNavItem, getSchemaDefinition } from "@/schemas";
 import { PageHeader } from "@/components/PageHeader";
 import { RecordsView } from "@/components/RecordsView";
+import { listResults } from "@/storage/survey-results";
 
 const nav = getNavItem("records");
 
-export default function RecordsPage() {
+export default async function RecordsPage() {
+  const records = await listResults();
+
   return (
     <div>
       <PageHeader
@@ -14,6 +17,7 @@ export default function RecordsPage() {
       <RecordsView
         schema={getSchemaDefinition(nav.schemaId).json}
         schemaId={nav.schemaId}
+        initialRecords={records}
       />
     </div>
   );

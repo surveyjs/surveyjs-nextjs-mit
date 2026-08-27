@@ -3,12 +3,8 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Model } from "survey-core";
-import {
-  insuranceClaimSeed,
-  type ClaimRecord,
-  type SurveyData,
-  type SurveyJSON,
-} from "@/schemas";
+import type { ClaimRecord, SurveyData, SurveyJSON } from "@/schemas";
+import { deleteResult, saveResult } from "@/storage/survey-results";
 import { cn } from "@/lib/utils";
 import { SurveyForm } from "@/components/SurveyForm";
 import { Badge } from "@/components/ui/badge";
@@ -65,18 +61,17 @@ function claimantName(data: SurveyData): string {
 export function RecordsView({
   schema,
   schemaId,
+  initialRecords,
 }: {
   schema: SurveyJSON;
   schemaId: string;
+  /** Read on the server by the page, so the first paint is complete. */
+  initialRecords: readonly ClaimRecord[];
 }) {
-  const [records, setRecords] = useState<ClaimRecord[]>(() =>
-    insuranceClaimSeed.map((r) => ({ ...r, data: { ...r.data } })),
-  );
+  const [records, setRecords] = useState<ClaimRecord[]>(() => [...initialRecords]);
   const [editor, setEditor] = useState<Editor | null>(() => {
-    const first = insuranceClaimSeed[0];
-    return first
-      ? { mode: "view", record: { ...first, data: { ...first.data } }, key: 0 }
-      : null;
+    const first = initialRecords[0];
+    return first ? { mode: "view", record: first, key: 0 } : null;
   });
   const [deleteTarget, setDeleteTarget] = useState<ClaimRecord | null>(null);
   const [model, setModel] = useState<Model | null>(null);
@@ -88,23 +83,24 @@ export function RecordsView({
   );
 
   const handleComplete = useCallback(
-    (data: SurveyData) => {
+    async (data: SurveyData) => {
       if (!editor) return;
       const id = editor.record.id;
-      const saved: SurveyData = { ...data, claimNumber: id };
+      const saved = await saveResult(id, { ...data, claimNumber: id });
 
-      setRecords((prev) => prev.map((r) => (r.id === id ? { id, data: saved } : r)));
+      setRecords((prev) => prev.map((r) => (r.id === id ? saved : r)));
       setEditor((prev) => ({
         mode: "view",
-        record: { id, data: saved },
+        record: saved,
         key: (prev?.key ?? 0) + 1,
       }));
     },
     [editor],
   );
 
-  const confirmDelete = useCallback(() => {
+  const confirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
+    await deleteResult(deleteTarget.id);
     const remaining = records.filter((r) => r.id !== deleteTarget.id);
     setRecords(remaining);
     // The form is always open on some record, so deleting the open one falls

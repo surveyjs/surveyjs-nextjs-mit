@@ -3,7 +3,6 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useState,
 } from "react";
@@ -18,7 +17,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SurveyForm } from "@/components/SurveyForm";
-import { clearOverride, readOverride, writeOverride } from "@/lib/schema-overrides";
+import {
+  loadSurveyJson,
+  resetSurveyJson,
+  saveSurveyJson,
+} from "@/storage/survey-json";
 import type { SurveyJSON } from "@/schemas";
 
 const JsonEditor = dynamic(() => import("@/components/JsonEditor"), {
@@ -61,15 +64,20 @@ export function SchemaEditor({
   const [customized, setCustomized] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
 
-  // Load this browser's saved definition before the first paint, so the editor
-  // never shows the canonical JSON to someone who has their own.
-  useLayoutEffect(() => {
-    const override = readOverride(schemaId);
-    if (!override) return;
-    const loaded = JSON.stringify(override, null, 2);
-    setSource(loaded);
-    setPreview(loaded);
-    setCustomized(true);
+  // Load this browser's saved definition, so the editor does not sit on the
+  // canonical JSON for someone who has their own.
+  useEffect(() => {
+    let active = true;
+    void loadSurveyJson(schemaId).then((saved) => {
+      if (!active || !saved) return;
+      const loaded = JSON.stringify(saved, null, 2);
+      setSource(loaded);
+      setPreview(loaded);
+      setCustomized(true);
+    });
+    return () => {
+      active = false;
+    };
   }, [schemaId]);
 
   useEffect(() => {
@@ -85,24 +93,24 @@ export function SchemaEditor({
     if (json) setSource(JSON.stringify(json, null, 2));
   }, [source]);
 
-  const save = useCallback(() => {
+  const save = useCallback(async () => {
     const { json, error } = parse(source);
     if (!json) {
       setStorageError(error ?? "Invalid JSON.");
       return;
     }
-    if (!writeOverride(schemaId, json)) {
-      setStorageError(
-        "Could not write to localStorage — private browsing or storage is full.",
-      );
+    try {
+      await saveSurveyJson(schemaId, json);
+    } catch (failure) {
+      setStorageError((failure as Error).message);
       return;
     }
     setStorageError(null);
     router.push(backHref);
   }, [backHref, router, schemaId, source]);
 
-  const reset = useCallback(() => {
-    clearOverride(schemaId);
+  const reset = useCallback(async () => {
+    await resetSurveyJson(schemaId);
     setSource(defaultSource);
     setCustomized(false);
     setStorageError(null);
