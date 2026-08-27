@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowUpRightIcon, LayersIcon, MenuIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,17 +19,14 @@ const SIDEBAR_WIDTH = "17rem";
 function Brand() {
   return (
     <div className="flex min-w-0 items-center gap-2 overflow-hidden lg:gap-4">
-      <Link
-        href="/"
-        className="flex min-w-0 items-center gap-2 text-inherit hover:underline"
-      >
+      <div className="flex min-w-0 items-center gap-2">
         <span className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
           <LayersIcon className="size-4" />
         </span>
         <span className="truncate text-sm font-semibold">
-          SurveyJS + Next.js Template
+          SurveyJS Library + Next.js Template
         </span>
-      </Link>
+      </div>
       <span className="hidden shrink-0 items-center gap-1.5 sm:flex">
         <span className="bg-secondary text-secondary-foreground rounded-full px-2 py-0.5 text-xs font-medium">
           MIT
