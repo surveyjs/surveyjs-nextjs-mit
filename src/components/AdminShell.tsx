@@ -91,7 +91,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <div className="ml-auto flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild>
             <a
-              href="https://github.com/surveyjs/surveyjs-nextjs"
+              href="https://github.com/surveyjs/surveyjs-nextjs-mit"
               target="_blank"
               rel="noreferrer"
             >
