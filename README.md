@@ -37,7 +37,7 @@ Deploy it to the cloud with [Vercel](https://vercel.com/new?utm_source=github&ut
 
 ## What this example covers
 
-- **Server-side rendering.** A survey is rendered into the HTML the server sends, so the form is in the document before any JavaScript runs. `survey-core` needs a DOM stub for that — see [src/lib/survey-ssr-environment.ts](src/lib/survey-ssr-environment.ts).
+- **Server-side rendering.** A survey is rendered into the HTML the server sends, so the form is in the document before any JavaScript runs — no DOM stub or other workaround required.
 - **JSON-driven forms.** Every form is a plain JSON definition; the app never hardcodes fields. Definitions live in [src/schemas/](src/schemas/).
 - **A renderer-agnostic model factory.** [createSurveyModel](src/schemas/createSurveyModel.ts) builds a configured `survey-core` model from a definition, and knows nothing about React — the same call works with any SurveyJS UI package.
 - **Theming with shadcn/ui.** The SurveyJS shadcn adapter (`survey-core/themes/adapters/shadcn-base-nova.css`) maps the form onto the same design tokens the rest of the app uses, so light/dark mode and radius/color changes apply to both at once. App-local tweaks go into [src/styles/](src/styles/).
@@ -113,7 +113,6 @@ src/
     survey-json.ts              Survey definitions
     survey-results.ts           Submitted answers and claim records
   lib/
-    survey-ssr-environment.ts   DOM stub that lets survey-core render on the server
     utils.ts                    The shadcn `cn()` helper
   styles/                       App-local overrides on top of the SurveyJS adapter
 ```
