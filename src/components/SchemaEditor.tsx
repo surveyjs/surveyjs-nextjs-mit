@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -17,6 +18,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SurveyForm } from "@/components/SurveyForm";
+import {
+  StaticAnalysisBar,
+  type LintMarker,
+} from "@/components/lint/StaticAnalysisBar";
+import type { JsonEditorApi } from "@/components/JsonEditor";
 import {
   loadSurveyJson,
   resetSurveyJson,
@@ -86,12 +92,33 @@ export function SchemaEditor({
   }, [source]);
 
   const parsedPreview = useMemo(() => parse(preview), [preview]);
-  const syntaxError = parse(source).error;
+  // Parsed once and shared: the syntax banner, "Format" and the linter all read
+  // this, so the document is never parsed twice for one keystroke.
+  const parsedSource = useMemo(() => parse(source), [source]);
+  const syntaxError = parsedSource.error;
+
+  const [markers, setMarkers] = useState<readonly LintMarker[]>([]);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const editorApi = useRef<JsonEditorApi | null>(null);
+
+  const selectedLine = useMemo(
+    () => markers.find((marker) => marker.path === selectedPath)?.line ?? null,
+    [markers, selectedPath],
+  );
+
+  const applyJson = useCallback((json: Record<string, unknown>) => {
+    setSource(JSON.stringify(json, null, 2));
+    setSelectedPath(null);
+  }, []);
+
+  const revealLine = useCallback((line: number) => {
+    editorApi.current?.revealLine(line);
+  }, []);
 
   const format = useCallback(() => {
-    const { json } = parse(source);
+    const { json } = parsedSource;
     if (json) setSource(JSON.stringify(json, null, 2));
-  }, [source]);
+  }, [parsedSource]);
 
   const save = useCallback(async () => {
     const { json, error } = parse(source);
@@ -114,6 +141,9 @@ export function SchemaEditor({
     setSource(defaultSource);
     setCustomized(false);
     setStorageError(null);
+    // Also drops whatever a "Try breaking it" action injected: those only ever
+    // write to `source`, which this restores.
+    setSelectedPath(null);
   }, [defaultSource, schemaId]);
 
   return (
@@ -177,11 +207,28 @@ export function SchemaEditor({
       )}
 
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-2">
-        <div className="min-h-[24rem] overflow-hidden rounded-lg border">
-          <JsonEditor
-            value={source}
-            onChange={setSource}
-            dark={resolvedTheme === "dark"}
+        <div className="flex min-h-[24rem] min-w-0 flex-col overflow-hidden rounded-lg border">
+          <div className="min-h-0 flex-1">
+            <JsonEditor
+              value={source}
+              onChange={setSource}
+              dark={resolvedTheme === "dark"}
+              markers={markers}
+              highlightLine={selectedLine}
+              onReady={(api) => {
+                editorApi.current = api;
+              }}
+              onMarkerActivate={setSelectedPath}
+            />
+          </div>
+          <StaticAnalysisBar
+            text={source}
+            json={parsedSource.json ?? null}
+            onRevealLine={revealLine}
+            onMarkersChange={setMarkers}
+            onApplyJson={applyJson}
+            selectedPath={selectedPath}
+            onSelectPath={setSelectedPath}
           />
         </div>
 

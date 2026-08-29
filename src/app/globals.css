@@ -148,3 +148,25 @@
     cursor: pointer;
   }
 }
+
+/* Static-analysis markers in the JSON editor's gutter. Monaco renders outside the
+   Tailwind tree, so these read the shadcn tokens straight off :root. The panel
+   lists every finding in text as well — a marker is never the only carrier. */
+.lint-glyph::before {
+  content: "";
+  display: block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin: 0.35rem auto;
+  border-radius: 9999px;
+}
+.lint-glyph-error::before { background: var(--destructive); }
+.lint-glyph-warning::before { background: var(--chart-4); }
+.lint-glyph-info::before { background: var(--muted-foreground); }
+
+.lint-line { width: 3px !important; margin-left: 3px; }
+.lint-line-error { background: var(--destructive); }
+.lint-line-warning { background: var(--chart-4); }
+.lint-line-info { background: var(--muted-foreground); }
+
+.lint-line-highlight { background: color-mix(in oklab, var(--accent) 70%, transparent); }
