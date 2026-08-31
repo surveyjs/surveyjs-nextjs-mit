@@ -1,11 +1,18 @@
 export type { SurveyJSON, SurveyData, SurveyMode, SchemaDefinition } from "./types";
 
 export { checkoutJson, checkoutSchema } from "./checkout";
+export {
+  customerSatisfactionJson,
+  customerSatisfactionSchema,
+} from "./customer-satisfaction";
 export { insuranceClaimJson, insuranceClaimSchema } from "./insurance-claim";
+export { planFinderJson, planFinderSchema } from "./plan-finder";
 export { medicalFormJson, medicalFormSchema } from "./medical-form";
 
 export { medicalFormSample } from "./data/medical-form-seed";
 export { checkoutSample } from "./data/checkout-seed";
+export { customerSatisfactionSample } from "./data/customer-satisfaction-seed";
+export { planFinderSample } from "./data/plan-finder-seed";
 export { insuranceClaimSeed, type ClaimRecord } from "./data/insurance-claim-seed";
 
 export {
@@ -23,13 +30,17 @@ export {
 } from "./navigation";
 
 import { checkoutSchema } from "./checkout";
+import { customerSatisfactionSchema } from "./customer-satisfaction";
 import { insuranceClaimSchema } from "./insurance-claim";
+import { planFinderSchema } from "./plan-finder";
 import { medicalFormSchema } from "./medical-form";
 import type { SchemaDefinition } from "./types";
 
 export const schemaRegistry: Record<string, SchemaDefinition> = {
   [checkoutSchema.id]: checkoutSchema,
+  [customerSatisfactionSchema.id]: customerSatisfactionSchema,
   [insuranceClaimSchema.id]: insuranceClaimSchema,
+  [planFinderSchema.id]: planFinderSchema,
   [medicalFormSchema.id]: medicalFormSchema,
 };
 

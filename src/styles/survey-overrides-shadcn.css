@@ -5,11 +5,17 @@
  * Style-specific tweaks stay in `/survey-overrides/<style-id>.css`.
  *
  * Prefer `--sjs2-*` token overrides on `.sjs-theme-overrides` when possible;
- * use SurveyJS class selectors only when tokens are not enough.
+ * use SurveyJS class selectors only when tokens are not enough — right now
+ * nothing here needs them. A hand-written block of `.sd-progress-buttons`
+ * geometry used to live below, imitating a `ui/stepper.tsx` that this template
+ * does not ship; it fought the adapter (connector lines drawn over the step
+ * circles, stubs past the first and last one, page titles jammed against the
+ * header rule), so it is gone. The adapter draws the stepper correctly on its
+ * own.
  */
 
 .sjs-theme-overrides {
-  /* Circular step markers — see the stepper section below. */
+  /* Circular step markers. */
   --sjs2-radius-component-stepper-item: 100%;
 
   --sjs2-layout-component-survey-header-gap-vertical:  calc(var(--spacing) * 1.5);
@@ -43,54 +49,3 @@
   --sjs2-layout-component-survey-footer-action-group-gap: calc(var(--spacing) * 3);
 }
 
-/* ── stepper ──────────────────────────────────────────────────────────────
-   The shadcn registry has no stepper, so there is nothing for the SurveyJS
-   adapter to imitate: the native column's wizard is hand-built here (see
-   `src/components/ui/stepper.tsx`, which the CLI never touches). Everything
-   below matches the SurveyJS progress bar to that app-owned widget — the
-   2.25rem `--stepper-indicator-size` circles with `shadow-sm`, and
-   `text-sm/medium text-muted-foreground` titles underneath. */
-.sd-progress-buttons {
-  padding: 0 calc(var(--spacing) * 6) calc(var(--spacing) * 2);
-}
-
-.sd-progress-buttons--titles-bottom .sd-progress-buttons__button {
-  margin-bottom: calc(var(--spacing) * 1);
-  margin-top: 0;
-}
-
-.sd-progress-buttons__page-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
-  line-height: 1.25;
-  color: var(--muted-foreground);
-}
-
-.sd-progress-buttons__list li:first-child,
-.sd-progress-buttons__list li:last-child {
-  align-items: center;
-}
-
-.sd-progress-buttons--titles-bottom .sd-progress-buttons__list-container {
-  padding-top: 0;
-}
-
-.sd-progress-buttons--numbered .sd-progress-buttons__button {
-  color: var(--muted-foreground);
-  font-size: var(--text-xs);
-  width: 2.25rem;
-  height: 2.25rem;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-}
-
-.sd-progress-buttons--numbered.sd-progress-buttons--titles-bottom .sd-progress-buttons__list li:after {
-  top: 1.125rem;
-  bottom: unset;
-}
-
-.sd-progress-buttons--numbered .sd-progress-buttons__list li::after,
-.sd-progress-buttons--numbered .sd-progress-buttons__list li:nth-child(2):not(:last-child)::after,
-.sd-progress-buttons--numbered .sd-progress-buttons__list li:nth-child(n + 3):last-child::after {
-  width: calc(100% - 2.25em);
-  right: calc(50% + 1.125em);
-}

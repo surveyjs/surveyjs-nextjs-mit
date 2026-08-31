@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-const surveyRoutes = ["/claims", "/checkout"];
+const surveyRoutes = ["/claims", "/checkout", "/embedded"];
 const allRoutes = [
   "/",
   ...surveyRoutes,
@@ -26,6 +26,66 @@ for (const route of surveyRoutes) {
     await expect(page.locator(".sd-root-modern").first()).toBeVisible();
   });
 }
+
+test("/embedded moves the same survey between placements", async ({ page }) => {
+  await page.goto("/embedded");
+  const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
+
+  // Inline: the survey is a section of the host page.
+  await expect(page.locator("#feedback .sd-root-modern")).toBeVisible();
+
+  await dock.getByRole("button", { name: "Floating widget" }).click();
+  await expect(page.locator("#feedback .sd-root-modern")).toHaveCount(0);
+  await expect(page.locator(".sd-root-modern").first()).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Close the feedback widget" }).first(),
+  ).toBeVisible();
+
+  // The toolbar has to stay usable over an open overlay — that is what
+  // `modal={false}` plus the outside-interaction guard buy.
+  await dock.getByRole("button", { name: "Modal dialog" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await dock.getByRole("button", { name: "Inline section" }).click();
+  await expect(page.locator("#feedback .sd-root-modern")).toBeVisible();
+});
+
+test("/embedded derives a plan, a price and a module list from the answers", async ({
+  page,
+}) => {
+  await page.goto("/embedded");
+  const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
+
+  await dock.getByRole("button", { name: "Prefill" }).click();
+
+  // Prefill remounts the model and every Next re-renders the card, so each step
+  // waits for the page it landed on instead of clicking blind, and the button is
+  // re-resolved inside the card each time rather than held across a re-render.
+  // Assertions read the card's text: these are sentences with inline markup.
+  const card = page.locator("#feedback");
+  const clickNext = () => card.getByRole("button", { name: "Next" }).click();
+
+  await expect(card).toContainText("How do you plan today?");
+  await clickNext();
+  await expect(card).toContainText("What should it talk to on day one?");
+  await clickNext();
+
+  // 15 seats with two must-have modules lands on Business at $19 a seat, so the
+  // whole calculatedValues chain is under test, not just one expression.
+  await expect(card).toContainText("Your estimate so far");
+  await expect(card).toContainText("$285.00");
+
+  await clickNext();
+  await expect(card).toContainText("start you on the Business plan");
+  await expect(card).toContainText("Capacity — workload warnings");
+  await expect(card).toContainText("Portfolio — rollups across every project");
+  // Insights was only "nice to have", so its line stays hidden.
+  await expect(card).not.toContainText("Insights — cycle time");
+
+  // The embedding does not care which definition it holds.
+  await dock.getByRole("button", { name: "Survey definition" }).click();
+  await page.getByRole("menuitem", { name: /Satisfaction survey/ }).click();
+  await expect(card).toContainText("How are we doing?");
+});
 
 test("/records renders the table and the SurveyJS editor", async ({ page }) => {
   await page.goto("/records");

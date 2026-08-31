@@ -1,4 +1,4 @@
-export type NavId = "claims" | "checkout" | "records";
+export type NavId = "claims" | "checkout" | "records" | "embedded";
 
 export interface NavItem {
   readonly id: NavId;
@@ -6,6 +6,12 @@ export interface NavItem {
   readonly path: string;
   readonly description: string;
   readonly schemaId: string;
+  /**
+   * Open the route in a new browser tab instead of inside the admin shell. The
+   * embedded demo pretends to be somebody else's website, so it can't be framed
+   * by this template's chrome without losing the whole point.
+   */
+  readonly openInNewTab?: boolean;
 }
 
 export const navItems: readonly NavItem[] = [
@@ -29,6 +35,14 @@ export const navItems: readonly NavItem[] = [
     path: "/records",
     description: "Browse and edit insurance-claim records.",
     schemaId: "insurance-claim",
+  },
+  {
+    id: "embedded",
+    label: "Embedded Demo",
+    path: "/embedded",
+    description: "A survey living inside a real product site. Opens in a new tab.",
+    schemaId: "plan-finder",
+    openInNewTab: true,
   },
 ] as const;
 

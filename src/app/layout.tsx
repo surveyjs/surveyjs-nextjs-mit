@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { AdminShell } from "@/components/AdminShell";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -10,13 +9,16 @@ export const metadata: Metadata = {
     "Complex forms defined as JSON, rendered on the server by Next.js and styled with shadcn/ui through the SurveyJS theme adapter.",
 };
 
+/**
+ * Only the document and the theme live here. The admin chrome belongs to the
+ * `(shell)` route group, so `/embedded` can render a page that looks like it
+ * came from a different company altogether.
+ */
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ThemeProvider>
-          <AdminShell>{children}</AdminShell>
-        </ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );
