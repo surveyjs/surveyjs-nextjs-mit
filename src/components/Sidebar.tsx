@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ClipboardListIcon,
-  MonitorPlayIcon,
+  CloudIcon,
+  CoffeeIcon,
+  HeartPulseIcon,
+  MessageSquareIcon,
   ShoppingCartIcon,
   SquareArrowOutUpRightIcon,
   TableIcon,
@@ -17,7 +20,10 @@ const ICONS: Record<NavId, LucideIcon> = {
   claims: ClipboardListIcon,
   checkout: ShoppingCartIcon,
   records: TableIcon,
-  embedded: MonitorPlayIcon,
+  embeddedFeedback: MessageSquareIcon,
+  embeddedCloud: CloudIcon,
+  embeddedShop: CoffeeIcon,
+  embeddedClinic: HeartPulseIcon,
 };
 
 const ITEM_CLASS =

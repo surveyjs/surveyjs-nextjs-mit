@@ -158,7 +158,7 @@ export const checkoutJson: SurveyJSON = {
           colCount: 1,
           defaultValue: "standard",
           choices: [
-            { value: "standard", text: "Standard (3–5 business days) — Free" },
+            { value: "standard", text: "Standard (3–5 business days) — free over $35" },
             { value: "express", text: "Express (2 business days) — $12" },
             { value: "overnight", text: "Overnight — $29" },
           ],

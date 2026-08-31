@@ -23,7 +23,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BRANDS, PLACEMENTS, type DemoSurvey, type PlacementId } from "./demo-controls";
+import {
+  BRANDS,
+  PLACEMENTS,
+  type DemoSurvey,
+  type PlacementId,
+} from "./demo-controls";
 import { cn } from "@/lib/utils";
 
 /**
@@ -79,7 +84,8 @@ export function DemoDock({
   }, []);
 
   const toggleFullscreen = () => {
-    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    if (document.fullscreenElement)
+      void document.exitFullscreen().catch(() => {});
     else void document.documentElement.requestFullscreen().catch(() => {});
   };
 
@@ -87,7 +93,10 @@ export function DemoDock({
     return (
       <div
         data-demo-dock=""
-        className={cn("demo-dock pointer-events-auto fixed bottom-4 z-[70]", position)}
+        className={cn(
+          "demo-dock pointer-events-auto fixed bottom-4 z-[70]",
+          position,
+        )}
       >
         <Button
           variant="outline"
@@ -102,7 +111,9 @@ export function DemoDock({
     );
   }
 
-  const divider = <span className="bg-border mx-0.5 h-5 w-px shrink-0" aria-hidden />;
+  const divider = (
+    <span className="bg-border mx-0.5 h-5 w-px shrink-0" aria-hidden />
+  );
   const isDark = resolvedTheme === "dark";
 
   return (
@@ -122,47 +133,53 @@ export function DemoDock({
       {divider}
 
       {/* Which form, then where it sits: the two halves of the claim that one
-          JSON definition drops into any slot on the page. */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="shrink-0 gap-1.5 rounded-full"
-            // The label is hidden on narrow viewports, so name the button
-            // explicitly rather than leaving it to the icon.
-            aria-label="Survey definition"
-            title="Swap in a different survey definition"
-          >
-            <ClipboardListIcon />
-            <span className="hidden lg:inline">
-              {surveys.find((survey) => survey.id === surveyId)?.label ?? "Survey"}
-            </span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="center" side="top" className="w-72">
-          <DropdownMenuLabel>Survey definition</DropdownMenuLabel>
-          {surveys.map((survey) => (
-            <DropdownMenuItem
-              key={survey.id}
-              onSelect={() => onSurveyChange(survey.id)}
-              className="flex-col items-start gap-0.5"
+          JSON definition drops into any slot on the page. A demo built around a
+          single definition has nothing to swap, so the switcher stays away. */}
+      {surveys.length > 1 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="shrink-0 gap-1.5 rounded-full"
+              // The label is hidden on narrow viewports, so name the button
+              // explicitly rather than leaving it to the icon.
+              aria-label="Survey definition"
+              title="Swap in a different survey definition"
             >
-              <span className="flex w-full items-center gap-2">
-                {survey.label}
-                {survey.id === surveyId && (
-                  <span className="text-muted-foreground ml-auto text-xs">active</span>
-                )}
+              <ClipboardListIcon />
+              <span className="hidden lg:inline">
+                {surveys.find((survey) => survey.id === surveyId)?.label ??
+                  "Survey"}
               </span>
-              <span className="text-muted-foreground text-xs leading-snug whitespace-normal">
-                {survey.hint}
-              </span>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" side="top" className="w-72">
+            <DropdownMenuLabel>Survey definition</DropdownMenuLabel>
+            {surveys.map((survey) => (
+              <DropdownMenuItem
+                key={survey.id}
+                onSelect={() => onSurveyChange(survey.id)}
+                className="flex-col items-start gap-0.5"
+              >
+                <span className="flex w-full items-center gap-2">
+                  {survey.label}
+                  {survey.id === surveyId && (
+                    <span className="text-muted-foreground ml-auto text-xs">
+                      active
+                    </span>
+                  )}
+                </span>
+                <span className="text-muted-foreground text-xs leading-snug whitespace-normal">
+                  {survey.hint}
+                </span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
-      {divider}
+      {surveys.length > 1 && divider}
 
       <span className="flex shrink-0 items-center gap-0.5">
         {PLACEMENTS.map((item) => {
@@ -218,7 +235,10 @@ export function DemoDock({
         <Code2Icon />
         <span className="hidden sm:inline">JSON</span>
         {jsonEdited && (
-          <span className="demo-brand-bg size-1.5 rounded-full" aria-label="edited" />
+          <span
+            className="demo-brand-bg size-1.5 rounded-full"
+            aria-label="edited"
+          />
         )}
       </Button>
 
@@ -237,7 +257,8 @@ export function DemoDock({
               className="size-3 rounded-full ring-1 ring-black/10"
               style={{
                 backgroundColor:
-                  BRANDS.find((brand) => brand.id === brandId)?.swatch ?? "transparent",
+                  BRANDS.find((brand) => brand.id === brandId)?.swatch ??
+                  "transparent",
               }}
               aria-hidden
             />
@@ -246,7 +267,10 @@ export function DemoDock({
         <DropdownMenuContent align="center" side="top" className="w-48">
           <DropdownMenuLabel>Host brand colour</DropdownMenuLabel>
           {BRANDS.map((brand) => (
-            <DropdownMenuItem key={brand.id} onSelect={() => onBrandChange(brand.id)}>
+            <DropdownMenuItem
+              key={brand.id}
+              onSelect={() => onBrandChange(brand.id)}
+            >
               <span
                 className="size-3.5 rounded-full ring-1 ring-black/10"
                 style={{ backgroundColor: brand.swatch }}
@@ -254,7 +278,9 @@ export function DemoDock({
               />
               {brand.label}
               {brand.id === brandId && (
-                <span className="text-muted-foreground ml-auto text-xs">active</span>
+                <span className="text-muted-foreground ml-auto text-xs">
+                  active
+                </span>
               )}
             </DropdownMenuItem>
           ))}
@@ -265,7 +291,11 @@ export function DemoDock({
         variant="ghost"
         size="icon-sm"
         className="shrink-0 rounded-full"
-        title={mounted ? `Switch to ${isDark ? "light" : "dark"} mode` : "Toggle colour scheme"}
+        title={
+          mounted
+            ? `Switch to ${isDark ? "light" : "dark"} mode`
+            : "Toggle colour scheme"
+        }
         onClick={() => setTheme(isDark ? "light" : "dark")}
       >
         {mounted && isDark ? <MoonIcon /> : <SunIcon />}

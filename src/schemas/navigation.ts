@@ -1,4 +1,11 @@
-export type NavId = "claims" | "checkout" | "records" | "embedded";
+export type NavId =
+  | "claims"
+  | "checkout"
+  | "records"
+  | "embeddedFeedback"
+  | "embeddedCloud"
+  | "embeddedShop"
+  | "embeddedClinic";
 
 export interface NavItem {
   readonly id: NavId;
@@ -8,8 +15,8 @@ export interface NavItem {
   readonly schemaId: string;
   /**
    * Open the route in a new browser tab instead of inside the admin shell. The
-   * embedded demo pretends to be somebody else's website, so it can't be framed
-   * by this template's chrome without losing the whole point.
+   * embedded demos pretend to be somebody else's website, so they can't be
+   * framed by this template's chrome without losing the whole point.
    */
   readonly openInNewTab?: boolean;
 }
@@ -37,11 +44,35 @@ export const navItems: readonly NavItem[] = [
     schemaId: "insurance-claim",
   },
   {
-    id: "embedded",
-    label: "Embedded Demo",
-    path: "/embedded",
-    description: "A survey living inside a real product site. Opens in a new tab.",
-    schemaId: "plan-finder",
+    id: "embeddedFeedback",
+    label: "Embedded: Give feedback",
+    path: "/embedded/feedback",
+    description: "A satisfaction survey inside a product marketing site.",
+    schemaId: "customer-satisfaction",
+    openInNewTab: true,
+  },
+  {
+    id: "embeddedCloud",
+    label: "Embedded: Cloud Platform",
+    path: "/embedded/cloud",
+    description: "A pricing page the survey re-prices live as you answer.",
+    schemaId: "cloud-platform",
+    openInNewTab: true,
+  },
+  {
+    id: "embeddedShop",
+    label: "Embedded: Coffee shop",
+    path: "/embedded/shop",
+    description: "A storefront where a five-question quiz picks the product and fills the cart.",
+    schemaId: "coffee-finder",
+    openInNewTab: true,
+  },
+  {
+    id: "embeddedClinic",
+    label: "Embedded: Family clinic",
+    path: "/embedded/clinic",
+    description: "A US clinic page whose appointment form estimates what the visit costs.",
+    schemaId: "clinic-visit",
     openInNewTab: true,
   },
 ] as const;

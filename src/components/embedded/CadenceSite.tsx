@@ -401,26 +401,26 @@ export function Suite() {
         </p>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {MODULES.map((module) => (
+          {MODULES.map((entry) => (
             <div
-              key={module.name}
+              key={entry.name}
               className={cn(
                 "bg-card flex flex-col rounded-xl border p-5",
-                module.core && "demo-brand-soft border-transparent",
+                entry.core && "demo-brand-soft border-transparent",
               )}
             >
               <span className="flex items-center justify-between gap-3">
-                <module.icon className="size-5" />
-                <span className="text-xs font-medium">{module.price}</span>
+                <entry.icon className="size-5" />
+                <span className="text-xs font-medium">{entry.price}</span>
               </span>
-              <p className="mt-4 text-base font-medium">{module.name}</p>
+              <p className="mt-4 text-base font-medium">{entry.name}</p>
               <p
                 className={cn(
                   "mt-2 text-sm leading-relaxed",
-                  module.core ? "opacity-80" : "text-muted-foreground",
+                  entry.core ? "opacity-80" : "text-muted-foreground",
                 )}
               >
-                {module.body}
+                {entry.body}
               </p>
             </div>
           ))}

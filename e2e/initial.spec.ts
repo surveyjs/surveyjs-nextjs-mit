@@ -1,6 +1,13 @@
 import { test, expect } from "@playwright/test";
 
-const surveyRoutes = ["/claims", "/checkout", "/embedded"];
+const surveyRoutes = [
+  "/claims",
+  "/checkout",
+  "/embedded/feedback",
+  "/embedded/cloud",
+  "/embedded/shop",
+  "/embedded/clinic",
+];
 const allRoutes = [
   "/",
   ...surveyRoutes,
@@ -27,8 +34,8 @@ for (const route of surveyRoutes) {
   });
 }
 
-test("/embedded moves the same survey between placements", async ({ page }) => {
-  await page.goto("/embedded");
+test("/embedded/feedback moves the same survey between placements", async ({ page }) => {
+  await page.goto("/embedded/feedback");
   const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
 
   // Inline: the survey is a section of the host page.
@@ -49,11 +56,20 @@ test("/embedded moves the same survey between placements", async ({ page }) => {
   await expect(page.locator("#feedback .sd-root-modern")).toBeVisible();
 });
 
-test("/embedded derives a plan, a price and a module list from the answers", async ({
+test("/embedded/feedback derives a plan, a price and a module list from the answers", async ({
   page,
 }) => {
-  await page.goto("/embedded");
+  await page.goto("/embedded/feedback");
   const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
+  const card = page.locator("#feedback");
+
+  // This route opens on the satisfaction survey; the plan finder is the other
+  // definition the toolbar offers. Swapping to it also proves the point the
+  // switcher is there to make: the embedding does not care which one it holds.
+  await expect(card).toContainText("How are we doing?");
+  await dock.getByRole("button", { name: "Survey definition" }).click();
+  await page.getByRole("menuitem", { name: /Plan finder/ }).click();
+  await expect(card).toContainText("Find the right plan");
 
   await dock.getByRole("button", { name: "Prefill" }).click();
 
@@ -61,7 +77,6 @@ test("/embedded derives a plan, a price and a module list from the answers", asy
   // waits for the page it landed on instead of clicking blind, and the button is
   // re-resolved inside the card each time rather than held across a re-render.
   // Assertions read the card's text: these are sentences with inline markup.
-  const card = page.locator("#feedback");
   const clickNext = () => card.getByRole("button", { name: "Next" }).click();
 
   await expect(card).toContainText("How do you plan today?");
@@ -80,11 +95,42 @@ test("/embedded derives a plan, a price and a module list from the answers", asy
   await expect(card).toContainText("Portfolio — rollups across every project");
   // Insights was only "nice to have", so its line stays hidden.
   await expect(card).not.toContainText("Insights — cycle time");
+});
 
-  // The embedding does not care which definition it holds.
-  await dock.getByRole("button", { name: "Survey definition" }).click();
-  await page.getByRole("menuitem", { name: /Satisfaction survey/ }).click();
-  await expect(card).toContainText("How are we doing?");
+test("/embedded/cloud re-prices the page as the configurator is answered", async ({
+  page,
+}) => {
+  await page.goto("/embedded/cloud");
+  const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
+  const quote = page.getByRole("complementary", { name: "Your quote" });
+
+  // Nothing answered: the page has no quote to show yet.
+  await expect(quote).toContainText("Answer the first question");
+
+  await dock.getByRole("button", { name: "Prefill" }).click();
+
+  // 25 projects and SSO put the tier at Business; the modules, the three
+  // environments and SOC 2 each add their own line. That the page shows them at
+  // all is the point of the demo: the survey model is driving it.
+  await expect(quote).toContainText("Business");
+  await expect(quote).toContainText("Streams module");
+  await expect(quote).toContainText("Warehouse module");
+  await expect(quote).toContainText("3 environments");
+  await expect(quote).toContainText("SOC 2 Type II report");
+
+  // Business's 2 TB allowance exactly covers the prefilled volume.
+  await expect(quote).not.toContainText("Storage over the allowance");
+
+  // 1200 + 180 + 340 + (520 + 180 + 60) + 400 support + 250 SOC 2
+  await expect(quote).toContainText("$3,130");
+
+  // The recommended tier is badged in the plan cards, and only that one.
+  const recommended = page.locator("#plan-business");
+  await expect(recommended).toContainText("Recommended for you");
+  await expect(page.locator("#plan-team")).not.toContainText("Recommended for you");
+
+  // The module grid marks what the quote contains.
+  await expect(page.getByText("In your quote")).toHaveCount(2);
 });
 
 test("/records renders the table and the SurveyJS editor", async ({ page }) => {
@@ -211,3 +257,69 @@ for (const route of allRoutes) {
     expect(errors).toHaveLength(0);
   });
 }
+
+test("/embedded/shop lets the quiz pick the product and the checkout drive the total", async ({
+  page,
+}) => {
+  await page.goto("/embedded/shop");
+  const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
+  const product = page.locator("#product");
+
+  // Nothing answered yet: the store is selling its house blend.
+  await expect(product).toContainText("Cedar & Cocoa");
+  await expect(product).toContainText("Best seller");
+
+  await dock.getByRole("button", { name: "Prefill" }).click();
+
+  // Espresso, milk and a sweet profile rank the dark roast first, and three to
+  // four cups a day is a 500 g bag every fortnight. None of that was picked by
+  // hand — the five answers re-pointed the page at a different product.
+  await expect(product).toContainText("Night Shift");
+  await expect(product).toContainText("Matched to your answers");
+
+  const why = page.getByRole("complementary", { name: "Why this coffee" });
+  await expect(why).toContainText("500 g");
+  await expect(why).toContainText("every 2 weeks");
+
+  await product.getByRole("button", { name: /Add to cart/ }).click();
+
+  // Adding to the cart is also what moves the store to its other page, which is
+  // the other definition the toolbar holds.
+  const summary = page.getByRole("complementary", { name: "Order summary" });
+  await expect(summary).toBeVisible();
+  // 17 x 1.85 for the 500 g bag, less the 10% standing-order discount.
+  await expect(summary).toContainText("$31.45");
+  await expect(summary).toContainText("$3.15");
+  await expect(summary).toContainText("Standard");
+
+  // The summary is downstream of the checkout form, not beside it: prefilling
+  // the checkout picks Express, and the shipping line follows.
+  await dock.getByRole("button", { name: "Prefill" }).click();
+  await expect(summary).toContainText("Express (2 days)");
+  await expect(summary).toContainText("$12.00");
+});
+
+test("/embedded/clinic estimates the visit from the answers", async ({ page }) => {
+  await page.goto("/embedded/clinic");
+  const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
+  const panel = page.getByRole("complementary", { name: "Your visit" });
+
+  await expect(panel).toContainText("Answer the first question");
+
+  await dock.getByRole("button", { name: "Prefill" }).click();
+
+  // Behavioral health bills at the specialist copay, and the prefilled plan is
+  // the HMO — so the panel shows $35 and the referral warning rather than the
+  // happy path.
+  await expect(panel).toContainText("Behavioral health");
+  await expect(panel).toContainText("Samuel Reyes, MD");
+  await expect(panel).toContainText("$35");
+  await expect(panel).toContainText("referral");
+
+  // A new patient gets a longer what-to-bring list.
+  await expect(panel).toContainText("list of your current medications");
+
+  // The directory and the office list mark what the request names.
+  await expect(page.locator("#provider-reyes")).toContainText("Requested");
+  await expect(page.locator("#location-westbridge")).toContainText("Chosen");
+});
