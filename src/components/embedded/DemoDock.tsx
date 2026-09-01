@@ -8,6 +8,7 @@ import {
   RotateCcwIcon,
   SquareDashedIcon,
   SunIcon,
+  UserRoundIcon,
   WandSparklesIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,8 +23,10 @@ const HOME = "/claims";
  * Every control exists to make a single claim checkable:
  *
  *  - **Prefill / Reset** — so the rest can be shown on a filled form at once;
- *  - **Configure JSON live** — the form is a JSON document, and so is the user it is
- *    rendered for; both are in the panel it opens;
+ *  - **Configure JSON live** — the form is a JSON document, editable over the
+ *    running page;
+ *  - **Edit the user** — the account the form is rendered for, in a popup whose
+ *    editor is itself a SurveyJS survey, with the resulting object shown as JSON;
  *  - **Highlight SurveyJS Render** — scrolls to the form and outlines it, which
  *    is the first thing anyone asks when a form looks native to its host.
  *
@@ -37,8 +40,10 @@ export function DemoDock({
   onPrefill,
   onReset,
   onEditJson,
+  onEditUser,
   edited,
   panelOpen,
+  userOpen,
   align = "center",
 }: {
   highlight: boolean;
@@ -46,9 +51,11 @@ export function DemoDock({
   onPrefill: () => void;
   onReset: () => void;
   onEditJson: () => void;
+  onEditUser: () => void;
   /** Either editor holds changes — worth a dot on the button. */
   edited: boolean;
   panelOpen: boolean;
+  userOpen: boolean;
   /** Steps aside when the editor panel would otherwise cover it. */
   align?: "center" | "left";
 }) {
@@ -124,6 +131,19 @@ export function DemoDock({
         {edited && (
           <span className="size-1.5 rounded-full bg-current opacity-70" aria-label="edited" />
         )}
+      </Button>
+
+      <Button
+        variant={userOpen ? "secondary" : "ghost"}
+        size="sm"
+        className={cn("shrink-0 gap-1.5 rounded-full", userOpen && "shadow-inner")}
+        aria-pressed={userOpen}
+        aria-label="Edit the user"
+        title="Change the signed-in user the form is rendered for — the editor is a SurveyJS form too"
+        onClick={onEditUser}
+      >
+        <UserRoundIcon />
+        <span className="hidden sm:inline">Edit the user</span>
       </Button>
 
       <Button

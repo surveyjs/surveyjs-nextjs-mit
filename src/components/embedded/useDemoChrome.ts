@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SurveyData, SurveyJSON } from "@/schemas";
 import { DEFAULT_BRAND_ID, applyBrand, getBrand, type DemoSurvey } from "./demo-controls";
+import type { DemoUser } from "./demo-accounts";
 
 /**
  * Everything the embedded demos have in common, minus the page itself.
@@ -13,9 +14,10 @@ import { DEFAULT_BRAND_ID, applyBrand, getBrand, type DemoSurvey } from "./demo-
  *
  *  1. **the definition** — the form is JSON, and editing the JSON changes the
  *     form on the page while you type;
- *  2. **the user** — the account is a JSON document in the same panel, and
- *     editing it moves values *and* structure, because the definition reads it
- *     as `{user.something}`.
+ *  2. **the user** — "Edit the user" opens the account in a popup, where the
+ *     editor is itself a SurveyJS form and the object it produces is shown as
+ *     JSON underneath. Editing it moves values *and* structure, because the
+ *     definition reads it as `{user.something}`.
  *
  * Prefill and Reset are there so the pair can be demonstrated on a full form
  * without typing twelve answers first, and "Highlight SurveyJS Render" answers
@@ -50,8 +52,10 @@ export interface DemoChrome {
     onPrefill: () => void;
     onReset: () => void;
     onEditJson: () => void;
+    onEditUser: () => void;
     edited: boolean;
     panelOpen: boolean;
+    userOpen: boolean;
     align: "center" | "left";
   };
   readonly panelProps: {
@@ -63,16 +67,40 @@ export interface DemoChrome {
     surveyError: string | null;
     surveyEdited: boolean;
     onRevertSurvey: () => void;
-    accountSource: string;
-    onAccountSourceChange: (source: string) => void;
-    accountError: string | null;
-    accountEdited: boolean;
-    onRevertAccount: () => void;
     account: Record<string, unknown>;
+  };
+  readonly userDialogProps: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    json: SurveyJSON;
+    defaults: SurveyData;
+    formKey: string;
+    onDataChange: (data: SurveyData) => void;
+    account: Record<string, unknown>;
+    edited: boolean;
+    onRevert: () => void;
   };
 }
 
 const DEBOUNCE_MS = 400;
+
+/**
+ * Key-order-insensitive serialisation, for "has this been edited?".
+ *
+ * A survey model rebuilds its data in question order, which is not the order the
+ * defaults were written in — comparing raw JSON would report every account as
+ * edited the moment the editor mounted.
+ */
+function stableJson(value: Record<string, unknown>): string {
+  return JSON.stringify(
+    Object.keys(value)
+      .sort()
+      .reduce<Record<string, unknown>>((acc, key) => {
+        acc[key] = value[key];
+        return acc;
+      }, {}),
+  );
+}
 
 /** Parses an editor's text, rejecting anything that is not a JSON object. */
 function parseObject(source: string): { value: Record<string, unknown> } | { error: string } {
@@ -89,14 +117,14 @@ function parseObject(source: string): { value: Record<string, unknown> } | { err
 
 export function useDemoChrome({
   survey,
-  account: preset,
+  user,
   /** Element the form lives in, so the demo can scroll back to it. */
   anchorId,
   brandId = DEFAULT_BRAND_ID,
 }: {
   survey: DemoSurvey;
-  /** What the host app knows about the visitor. Editable live in the panel. */
-  account: Readonly<Record<string, unknown>>;
+  /** The visitor, plus the survey used to edit them. */
+  user: DemoUser;
   anchorId: string;
   /** Palette the demo runs in, so no two host sites look alike. */
   brandId?: string;
@@ -106,6 +134,7 @@ export function useDemoChrome({
   const [seed, setSeed] = useState<SurveyData | undefined>(undefined);
   const [runCount, setRunCount] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
   const [highlight, setHighlight] = useState(false);
 
   useEffect(() => {
@@ -156,31 +185,30 @@ export function useDemoChrome({
 
   /* ── the user the definition is rendered for ─────────────────────────────── */
 
-  const defaultAccountSource = useMemo(() => JSON.stringify(preset, null, 2), [preset]);
-  const [accountSource, setAccountSource] = useState(defaultAccountSource);
-  const [account, setAccount] = useState<Record<string, unknown>>(() => ({ ...preset }));
-  const [accountError, setAccountError] = useState<string | null>(null);
-  const accountEdited = accountSource !== defaultAccountSource;
+  // The editor's answers, and the answers the page is currently rendered from.
+  // Debounced apart for the same reason the JSON editor is: typing a name should
+  // not rebuild the survey model on every keystroke.
+  const [formData, setFormData] = useState<SurveyData>(user.defaults);
+  const [appliedForm, setAppliedForm] = useState<SurveyData>(user.defaults);
+  const [formRun, setFormRun] = useState(0);
 
-  const appliedAccount = useRef(defaultAccountSource);
+  const accountEdited = useMemo(
+    () => stableJson(formData) !== stableJson(user.defaults),
+    [formData, user.defaults],
+  );
 
   useEffect(() => {
-    if (accountSource === appliedAccount.current) return;
+    if (formData === appliedForm) return;
     const timer = setTimeout(() => {
-      const result = parseObject(accountSource);
-      if ("error" in result) {
-        setAccountError(result.error);
-        return;
-      }
-      appliedAccount.current = accountSource;
-      setAccount(result.value);
-      setAccountError(null);
+      setAppliedForm(formData);
       // A different user is a different form, so the model is rebuilt rather
       // than re-fed — `runKey` remounts it.
       setRunCount((count) => count + 1);
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [accountSource]);
+  }, [formData, appliedForm]);
+
+  const account = useMemo(() => user.toAccount(appliedForm), [user, appliedForm]);
 
   /* ── actions ─────────────────────────────────────────────────────────────── */
 
@@ -226,12 +254,11 @@ export function useDemoChrome({
   }, [defaultSurveySource, survey.json, restart]);
 
   const revertAccount = useCallback(() => {
-    setAccountSource(defaultAccountSource);
-    appliedAccount.current = defaultAccountSource;
-    setAccount({ ...preset });
-    setAccountError(null);
+    setFormData(user.defaults);
+    setAppliedForm(user.defaults);
+    setFormRun((count) => count + 1);
     setRunCount((count) => count + 1);
-  }, [defaultAccountSource, preset]);
+  }, [user.defaults]);
 
   const variables = useMemo(() => ({ user: account }), [account]);
 
@@ -250,8 +277,10 @@ export function useDemoChrome({
       onPrefill: prefill,
       onReset: restart,
       onEditJson: () => setPanelOpen((open) => !open),
+      onEditUser: () => setUserOpen((open) => !open),
       edited: surveyEdited || accountEdited,
       panelOpen,
+      userOpen,
       align: panelOpen ? "left" : "center",
     },
     panelProps: {
@@ -263,12 +292,18 @@ export function useDemoChrome({
       surveyError,
       surveyEdited,
       onRevertSurvey: revertSurvey,
-      accountSource,
-      onAccountSourceChange: setAccountSource,
-      accountError,
-      accountEdited,
-      onRevertAccount: revertAccount,
       account,
+    },
+    userDialogProps: {
+      open: userOpen,
+      onOpenChange: setUserOpen,
+      json: user.json,
+      defaults: user.defaults,
+      formKey: `user-${formRun}`,
+      onDataChange: setFormData,
+      account,
+      edited: accountEdited,
+      onRevert: revertAccount,
     },
   };
 }

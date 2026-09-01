@@ -5,6 +5,7 @@ import { quoteFor, type SurveyData } from "@/schemas";
 import { DemoDock } from "./DemoDock";
 import { EmbeddedSurvey, SurveyCard } from "./EmbeddedSurvey";
 import { DemoJsonPanel } from "./DemoJsonPanel";
+import { DemoUserDialog } from "./DemoUserDialog";
 import {
   ComparisonTable,
   ModuleGrid,
@@ -16,7 +17,7 @@ import {
   QuotePanel,
 } from "./CumuloraPricing";
 import { useDemoChrome } from "./useDemoChrome";
-import { CUMULORA_ACCOUNT } from "./demo-accounts";
+import { CUMULORA_USER } from "./demo-accounts";
 import type { DemoSurvey } from "./demo-controls";
 
 const ANCHOR = "configure";
@@ -38,8 +39,8 @@ export const CUMULORA_BRAND = "rose";
  * EU account gets an entire data-residency page that a US one never sees.
  *
  * Two details worth watching in a presentation:
- *  - open the JSON panel and change the account's `region` to `"eu"`: the price
- *    stays, the answers stay, and the progress bar grows a residency step;
+ *  - open "Edit the user" and switch the region to the EU: the price stays, the
+ *    answers stay, and the progress bar grows a residency step;
  *  - "See my plan" scrolls to the recommended tier; "Change my answers" comes
  *    back with every answer still in place, because the survey is remounted with
  *    the data it already had rather than reset.
@@ -47,7 +48,7 @@ export const CUMULORA_BRAND = "rose";
 export function CumuloraDemo({ survey }: { survey: DemoSurvey }) {
   const chrome = useDemoChrome({
     survey,
-    account: CUMULORA_ACCOUNT,
+    user: CUMULORA_USER,
     anchorId: ANCHOR,
     brandId: CUMULORA_BRAND,
   });
@@ -126,6 +127,7 @@ export function CumuloraDemo({ survey }: { survey: DemoSurvey }) {
       <PricingFooter />
 
       <DemoJsonPanel {...chrome.panelProps} />
+      <DemoUserDialog {...chrome.userDialogProps} />
       <DemoDock {...chrome.dockProps} />
     </div>
   );

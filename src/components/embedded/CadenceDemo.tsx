@@ -16,8 +16,9 @@ import {
 import { DemoDock } from "./DemoDock";
 import { EmbeddedSurvey, SurveyCard } from "./EmbeddedSurvey";
 import { DemoJsonPanel } from "./DemoJsonPanel";
+import { DemoUserDialog } from "./DemoUserDialog";
 import { useDemoChrome } from "./useDemoChrome";
-import { CADENCE_ACCOUNT } from "./demo-accounts";
+import { CADENCE_USER } from "./demo-accounts";
 import type { DemoSurvey } from "./demo-controls";
 
 const ANCHOR = "feedback";
@@ -39,7 +40,7 @@ export const CADENCE_BRAND = "indigo";
 export function CadenceDemo({ survey }: { survey: DemoSurvey }) {
   const chrome = useDemoChrome({
     survey,
-    account: CADENCE_ACCOUNT,
+    user: CADENCE_USER,
     anchorId: ANCHOR,
     brandId: CADENCE_BRAND,
   });
@@ -73,6 +74,7 @@ export function CadenceDemo({ survey }: { survey: DemoSurvey }) {
       <SiteFooter />
 
       <DemoJsonPanel {...chrome.panelProps} />
+      <DemoUserDialog {...chrome.userDialogProps} />
       <DemoDock {...chrome.dockProps} />
     </div>
   );

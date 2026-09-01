@@ -5,6 +5,7 @@ import { visitSummaryFor, type SurveyData } from "@/schemas";
 import { DemoDock } from "./DemoDock";
 import { EmbeddedSurvey, SurveyCard } from "./EmbeddedSurvey";
 import { DemoJsonPanel } from "./DemoJsonPanel";
+import { DemoUserDialog } from "./DemoUserDialog";
 import {
   ClinicFooter,
   ClinicHeader,
@@ -18,7 +19,7 @@ import {
   VisitSummaryPanel,
 } from "./RidgelineSite";
 import { useDemoChrome } from "./useDemoChrome";
-import { RIDGELINE_ACCOUNT } from "./demo-accounts";
+import { RIDGELINE_USER } from "./demo-accounts";
 import type { DemoSurvey } from "./demo-controls";
 
 const ANCHOR = "request";
@@ -41,13 +42,14 @@ export const RIDGELINE_BRAND = "emerald";
  * office, the clinician, the plan and the identity fields all arrive filled, the
  * insurance-card fields are absent while a card is on file, and the questions
  * about existing conditions and refills are built from that patient's own chart.
- * Set `isNewPatient` to true in the JSON panel and watch it invert: Maria
- * confirms four things, a first-time patient gets an extra page.
+ * Turn on "First visit to Ridgeline?" in the user popup and watch it invert: the
+ * chart empties, Maria's four confirmations become the long form, and a page
+ * appears that established patients never see.
  */
 export function RidgelineDemo({ survey }: { survey: DemoSurvey }) {
   const chrome = useDemoChrome({
     survey,
-    account: RIDGELINE_ACCOUNT,
+    user: RIDGELINE_USER,
     anchorId: ANCHOR,
     brandId: RIDGELINE_BRAND,
   });
@@ -130,6 +132,7 @@ export function RidgelineDemo({ survey }: { survey: DemoSurvey }) {
       <ClinicFooter />
 
       <DemoJsonPanel {...chrome.panelProps} />
+      <DemoUserDialog {...chrome.userDialogProps} />
       <DemoDock {...chrome.dockProps} />
     </div>
   );

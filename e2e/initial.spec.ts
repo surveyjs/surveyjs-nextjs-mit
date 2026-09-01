@@ -194,36 +194,32 @@ for (const route of allRoutes) {
   });
 }
 
-/**
- * Edits the account document in the toolbar's JSON panel, the way a presenter
- * would: patch a key or two and leave the rest alone.
- *
- * The panel holds two Monaco models. The account is the one that mentions
- * `firstName` without being a survey definition — the clinic form has a question
- * called `firstName` too, so `pages` is what tells them apart.
- */
-async function patchUserJson(
-  page: import("@playwright/test").Page,
-  patch: Record<string, unknown>,
-) {
-  await page.evaluate((next) => {
-    const monaco = (window as unknown as { monaco: typeof import("monaco-editor") }).monaco;
-    const model = monaco.editor
-      .getModels()
-      .find((m) => m.getValue().includes('"firstName"') && !m.getValue().includes('"pages"'));
-    if (!model) throw new Error("the account editor is not on screen");
-    model.setValue(JSON.stringify({ ...JSON.parse(model.getValue()), ...next }, null, 2));
-  }, patch);
-}
-
-async function openJsonPanel(page: import("@playwright/test").Page) {
+/** Opens the toolbar's user popup and waits for the editor survey inside it. */
+async function openUserDialog(page: import("@playwright/test").Page) {
   await page
     .getByRole("toolbar", { name: "Embedded demo tools" })
-    .getByRole("button", { name: "Configure JSON live" })
+    .getByRole("button", { name: "Edit the user" })
     .click();
-  // Monaco is a heavy dynamic import; under parallel workers it needs longer
-  // than the default expect timeout.
-  await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 30_000 });
+  const dialog = page.getByRole("dialog");
+  // The editor is a SurveyJS survey — same markup as the demo it drives.
+  await expect(dialog.locator(".sd-root-modern")).toBeVisible();
+  return dialog;
+}
+
+/** One field of the editor survey, by question name. */
+function editorField(dialog: import("@playwright/test").Locator, name: string) {
+  return dialog.locator(`[data-name="${name}"] input`).first();
+}
+
+async function typeInEditor(
+  dialog: import("@playwright/test").Locator,
+  name: string,
+  value: string,
+) {
+  const field = editorField(dialog, name);
+  await field.fill(value);
+  // survey-core commits a text answer on blur by default.
+  await field.press("Tab");
 }
 
 test("/embedded/feedback renders the same definition differently per user", async ({
@@ -249,40 +245,39 @@ test("/embedded/feedback renders the same definition differently per user", asyn
   await expect(card).toContainText(/What matters\s*2\s*Support\s*3/);
   await expect(card).not.toContainText("Getting started");
 
-  await openJsonPanel(page);
-  await patchUserJson(page, {
-    firstName: "John",
-    lastName: "Park",
-    company: "Park Studio",
-    plan: "free",
-    planLabel: "Free",
-    monthsActive: 0,
-    openTicket: false,
-  });
+  const dialog = await openUserDialog(page);
+  await typeInEditor(dialog, "firstName", "John");
+  await typeInEditor(dialog, "monthsActive", "1");
 
-  // Same JSON definition, a different user: a new greeting, a different plan, and
-  // the set of steps has changed — nought months means onboarding questions, and
-  // no ticket means no support step.
+  // The popup shows the object the survey is actually handed.
+  await expect(dialog.locator("pre")).toContainText('"firstName": "John"');
+
+  // Same JSON definition, a different user: a new greeting, a re-derived tenure,
+  // and a step that did not exist before.
   await expect(card).toContainText("Hi John, how are we doing?");
-  await expect(card).toContainText("Free plan");
-  await expect(card).toContainText("Less than a month");
+  // One month re-derives usagePeriod through the second branch of the iif chain.
+  await expect(card).toContainText("One to six months");
   await expect(card).toContainText(/Getting started\s*2/);
-  await expect(card).not.toContainText(/Support\s*3/);
-  await expect(page.locator("header").first()).toContainText("John Park");
+  await expect(page.locator("header").first()).toContainText("John Rivera");
 });
 
-test("/embedded/feedback opens both JSON editors from one button", async ({ page }) => {
+test("the toolbar opens the definition and the user separately", async ({ page }) => {
   await page.goto("/embedded/feedback");
+  const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
 
-  await openJsonPanel(page);
-
+  await dock.getByRole("button", { name: "Configure JSON live" }).click();
   const panel = page.getByRole("complementary", { name: "Live JSON" });
-  await expect(panel.getByRole("region", { name: "The signed-in user" })).toBeVisible();
-  await expect(panel.getByRole("region", { name: "The survey definition" })).toBeVisible();
-
+  // Monaco is a heavy dynamic import; under parallel workers it needs longer
+  // than the default expect timeout.
+  await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 30_000 });
   // The wired-keys line is computed from the definition on screen, not a list.
   await expect(panel).toContainText("firstName");
   await expect(panel).toContainText("monthsActive");
+
+  // The user lives in its own popup, and the two are usable at the same time.
+  const dialog = await openUserDialog(page);
+  await expect(dialog).toContainText("The signed-in user");
+  await expect(panel).toBeVisible();
 });
 
 test("the demo toolbar links home and can outline the survey", async ({ page }) => {
@@ -341,33 +336,21 @@ test("/embedded/clinic fills the request from the patient's chart", async ({ pag
   await expect(page.locator("#provider-navarro")).toContainText("Requested");
   await expect(page.locator("#location-westbridge")).toContainText("Chosen");
 
-  await openJsonPanel(page);
+  const dialog = await openUserDialog(page);
 
-  // Editing the chart keeps the answers and moves everything the chart owns:
-  // Medicare Advantage bills a $20 specialist copay and needs no referral.
-  await patchUserJson(page, {
-    healthPlanOnFile: "statecare",
-    healthPlanLabel: "StateCare Advantage (Medicare)",
-    homeLocation: "marlowe",
-    primaryProvider: "weiss",
-  });
+  // One switch in the editor, and the chart goes with it: the editor's own panel
+  // is `visibleIf`-gated and clears its answers, so the account really does empty.
+  await expect(dialog).toContainText("What we have on file");
+  await dialog.locator('[data-name="isNewPatient"]').getByText("Yes, nobody on file").click();
+  await expect(dialog).not.toContainText("What we have on file");
+  await expect(dialog.locator("pre")).toContainText('"isNewPatient": true');
 
-  await expect(panel).toContainText("Behavioral health");
-  await expect(panel).toContainText("Marlowe");
-  await expect(panel).toContainText("Hannah Weiss, DO");
-  await expect(panel).toContainText("$20");
-  await expect(panel).not.toContainText("referral");
-
-  // And one flag turns the shorter form into the longer one.
-  await patchUserJson(page, {
-    isNewPatient: true,
-    conditions: [],
-    medications: [],
-    openRefills: false,
-  });
-
+  // The answers are still there, and the form around them is the long one.
   await expect(card).toContainText("You are new to Ridgeline");
   await expect(card).toContainText("New here");
   await expect(card).not.toContainText("Is this about something we already treat you for?");
+  await expect(panel).toContainText("Behavioral health");
   await expect(panel).toContainText("New to Ridgeline");
+  // No plan on file any more, so there is nothing to estimate.
+  await expect(panel).not.toContainText("$35");
 });
