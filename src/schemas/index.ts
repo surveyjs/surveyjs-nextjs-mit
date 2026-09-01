@@ -5,8 +5,6 @@ export { clinicVisitJson, clinicVisitSchema } from "./clinic-visit";
 export * from "./clinic-info";
 export { cloudPlatformJson, cloudPlatformSchema } from "./cloud-platform";
 export * from "./cloud-platform-pricing";
-export { coffeeFinderJson, coffeeFinderSchema } from "./coffee-finder";
-export * from "./shop-catalog";
 export {
   customerSatisfactionJson,
   customerSatisfactionSchema,
@@ -18,7 +16,6 @@ export { medicalFormJson, medicalFormSchema } from "./medical-form";
 export { medicalFormSample } from "./data/medical-form-seed";
 export { checkoutSample } from "./data/checkout-seed";
 export { clinicVisitSample } from "./data/clinic-visit-seed";
-export { coffeeFinderSample } from "./data/coffee-finder-seed";
 export { customerSatisfactionSample } from "./data/customer-satisfaction-seed";
 export { planFinderSample } from "./data/plan-finder-seed";
 export { cloudPlatformSample } from "./data/cloud-platform-seed";
@@ -41,7 +38,6 @@ export {
 import { checkoutSchema } from "./checkout";
 import { clinicVisitSchema } from "./clinic-visit";
 import { cloudPlatformSchema } from "./cloud-platform";
-import { coffeeFinderSchema } from "./coffee-finder";
 import { customerSatisfactionSchema } from "./customer-satisfaction";
 import { insuranceClaimSchema } from "./insurance-claim";
 import { planFinderSchema } from "./plan-finder";
@@ -52,7 +48,6 @@ export const schemaRegistry: Record<string, SchemaDefinition> = {
   [checkoutSchema.id]: checkoutSchema,
   [clinicVisitSchema.id]: clinicVisitSchema,
   [cloudPlatformSchema.id]: cloudPlatformSchema,
-  [coffeeFinderSchema.id]: coffeeFinderSchema,
   [customerSatisfactionSchema.id]: customerSatisfactionSchema,
   [insuranceClaimSchema.id]: insuranceClaimSchema,
   [planFinderSchema.id]: planFinderSchema,

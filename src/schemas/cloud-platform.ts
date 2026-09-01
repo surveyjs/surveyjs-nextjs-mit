@@ -22,6 +22,17 @@ import type { SchemaDefinition, SurveyJSON } from "./types";
  * appear once a module is chosen, and the built-in preview step, which is what
  * lets a visitor change an answer after seeing the result without losing the
  * rest of them.
+ *
+ * The other half is that it opens on what the CRM already knows about the account
+ * (`{user.…}`, see `demo-accounts.ts`), which for a sales-led product is the
+ * difference between a form and a proposal:
+ *
+ *  - `projects` and `compliance` arrive answered from the account record;
+ *  - an existing customer is asked what they are changing, a prospect where they
+ *    are in evaluating it;
+ *  - `baaRequired` appears only for accounts with HIPAA on file;
+ *  - the whole `residency` page exists only for EU accounts;
+ *  - the email is never asked for twice.
  */
 
 const moduleChoices = CLOUD_MODULES.map((entry) => ({
@@ -45,9 +56,9 @@ const complianceChoices = COMPLIANCE_ADDONS.map((addon) => ({
 }));
 
 export const cloudPlatformJson: SurveyJSON = {
-  title: "Configure your platform",
+  title: "{user.companyName}, let's size your platform",
   description:
-    "Five short steps. The price on the right updates as you answer, and you can change any answer before you commit to it.",
+    "A few short steps, some of them already filled in from your account. The price on the right updates as you answer.",
   showQuestionNumbers: "off",
   widthMode: "responsive",
   questionErrorLocation: "bottom",
@@ -67,6 +78,41 @@ export const cloudPlatformJson: SurveyJSON = {
       title: "Workload",
       elements: [
         {
+          type: "html",
+          name: "accountNote",
+          visibleIf: "{user.companyName} notempty",
+          html: "<p>Prepared for <strong>{user.companyName}</strong> — {user.industry}, about {user.employees} people, {user.regionLabel}.</p>",
+        },
+        {
+          type: "html",
+          name: "trialNote",
+          visibleIf: "{user.trialDaysLeft} > 0",
+          html: "<p>Your trial has <strong>{user.trialDaysLeft} days</strong> left. Nothing here starts a subscription.</p>",
+        },
+        {
+          type: "radiogroup",
+          name: "changeType",
+          visibleIf: "{user.existingCustomer} = true",
+          title: "You are on {user.currentPlanLabel} today. What is this about?",
+          choices: [
+            { value: "upgrade", text: "Moving up a plan" },
+            { value: "environments", text: "Adding environments" },
+            { value: "renewal", text: "Pricing the renewal" },
+            { value: "curious", text: "Just checking the numbers" },
+          ],
+        },
+        {
+          type: "radiogroup",
+          name: "evaluationStage",
+          visibleIf: "{user.existingCustomer} = false",
+          title: "Where are you in looking at this?",
+          choices: [
+            { value: "early", text: "Early — comparing options" },
+            { value: "shortlist", text: "On a shortlist" },
+            { value: "chosen", text: "Decided, working out the size" },
+          ],
+        },
+        {
           type: "radiogroup",
           name: "workload",
           title: "What are you building first?",
@@ -83,7 +129,10 @@ export const cloudPlatformJson: SurveyJSON = {
           type: "dropdown",
           name: "projects",
           title: "How many projects will live on it?",
+          description: "Sized from your headcount to start with.",
           isRequired: true,
+          defaultValueExpression:
+            "iif({user.employees} < 100, 1, iif({user.employees} < 500, 5, iif({user.employees} < 2000, 25, 80)))",
           choices: PROJECT_COUNTS.map((count) => ({ value: count.value, text: count.text })),
         },
         {
@@ -208,10 +257,21 @@ export const cloudPlatformJson: SurveyJSON = {
           type: "checkbox",
           name: "compliance",
           title: "Any compliance commitments we should cover?",
+          description: "The ones already on your account are ticked.",
+          defaultValueExpression: "{user.complianceOnFile}",
           choices: complianceChoices,
           showNoneItem: true,
           noneText: "None",
           separateSpecialChoices: true,
+        },
+        {
+          type: "boolean",
+          name: "baaRequired",
+          visibleIf: "{user.complianceOnFile} contains 'hipaa'",
+          title: "Do you need the BAA signed before the first environment?",
+          description: "HIPAA is on your account, so we ask.",
+          labelTrue: "Yes, before anything runs",
+          labelFalse: "No, alongside is fine",
         },
         {
           type: "radiogroup",
@@ -219,6 +279,40 @@ export const cloudPlatformJson: SurveyJSON = {
           title: "How much support do you want?",
           defaultValue: "standard",
           choices: supportChoices,
+        },
+      ],
+    },
+    {
+      name: "residency",
+      title: "Data residency",
+      visibleIf: "{user.region} = 'eu'",
+      description:
+        "{user.companyName} is in the {user.regionLabel}, so this page exists. It is not shown to accounts outside it.",
+      elements: [
+        {
+          type: "radiogroup",
+          name: "dataRegion",
+          title: "Where should the data stay?",
+          isRequired: true,
+          choices: [
+            { value: "frankfurt", text: "Frankfurt" },
+            { value: "dublin", text: "Dublin" },
+            { value: "zurich", text: "Zurich" },
+          ],
+        },
+        {
+          type: "boolean",
+          name: "dpaRequired",
+          title: "Do you need a DPA with standard contractual clauses?",
+          labelTrue: "Yes",
+          labelFalse: "Already covered",
+        },
+        {
+          type: "boolean",
+          name: "subprocessorReview",
+          title: "Does your team review sub-processors before go-live?",
+          labelTrue: "Yes",
+          labelFalse: "No",
         },
       ],
     },
@@ -235,14 +329,23 @@ export const cloudPlatformJson: SurveyJSON = {
           type: "dropdown",
           name: "startWhen",
           title: "When would you want to start?",
+          defaultValueExpression:
+            "iif({user.trialDaysLeft} > 0 and {user.trialDaysLeft} <= 7, 'This week', iif({user.existingCustomer} = true, 'This month', ''))",
           choices: ["This week", "This month", "This quarter", "Just pricing it up"],
         },
         {
           type: "boolean",
           name: "sendQuote",
           title: "Should we email you this quote?",
+          defaultValue: true,
           labelTrue: "Yes, please",
           labelFalse: "No, thanks",
+        },
+        {
+          type: "html",
+          name: "emailOnFile",
+          visibleIf: "{sendQuote} = true and {user.email} notempty",
+          html: "<p>We will send it to <strong>{user.email}</strong>, the address on the account. Nothing to type.</p>",
         },
         {
           type: "text",
@@ -250,9 +353,9 @@ export const cloudPlatformJson: SurveyJSON = {
           title: "Where should we send it?",
           inputType: "email",
           placeholder: "you@company.com",
-          visibleIf: "{sendQuote} = true",
-          isRequired: true,
-          requiredIf: "{sendQuote} = true",
+          autocomplete: "email",
+          visibleIf: "{sendQuote} = true and {user.email} empty",
+          requiredIf: "{sendQuote} = true and {user.email} empty",
           validators: [{ type: "email" }],
         },
       ],

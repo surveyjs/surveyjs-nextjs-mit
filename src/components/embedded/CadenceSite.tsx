@@ -15,6 +15,8 @@ import {
   ZapIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SignedInChip } from "./SignedInChip";
+import { accountText } from "./demo-accounts";
 import { cn } from "@/lib/utils";
 
 /**
@@ -53,7 +55,14 @@ export function CadenceMark({ className }: { className?: string }) {
 
 const NAV_LINKS = ["Product", "Solutions", "Changelog", "Pricing", "Docs"];
 
-export function SiteHeader({ onFeedback }: { onFeedback: () => void }) {
+export function SiteHeader({
+  onFeedback,
+  account,
+}: {
+  onFeedback: () => void;
+  /** The signed-in workspace member — the survey is rendered for them too. */
+  account: Record<string, unknown>;
+}) {
   return (
     <header className="bg-background/70 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30 border-b backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-6 px-6">
@@ -83,12 +92,13 @@ export function SiteHeader({ onFeedback }: { onFeedback: () => void }) {
           >
             Give feedback
           </Button>
-          <Button variant="ghost" size="sm" className="hidden md:inline-flex">
-            Sign in
-          </Button>
-          <Button size="sm" className="demo-brand-bg hover:opacity-90">
-            Start free
-          </Button>
+          <SignedInChip
+            account={account}
+            meta={`${accountText(account, "planLabel", "Free")} plan · ${accountText(
+              account,
+              "company",
+            )}`}
+          />
         </div>
       </div>
     </header>
@@ -103,8 +113,8 @@ export function SiteHeader({ onFeedback }: { onFeedback: () => void }) {
  * you see the form. It also happens to be where a real site puts a form.
  *
  * The survey column is the wider of the two because below roughly 600px
- * survey-core switches its matrix question to a stacked layout, and the inline
- * placement should show the desktop one.
+ * survey-core switches its matrix question to a stacked layout, and the demo
+ * should show the desktop one.
  */
 export function Hero({ children }: { children: ReactNode }) {
   return (
@@ -680,8 +690,8 @@ const EMBED_NOTES = [
     body: "No survey theme to maintain. The form reads the same shadcn variables as the buttons around it — brand colour and dark mode included.",
   },
   {
-    title: "One JSON, four placements",
-    body: "Inline here, or a modal, a side drawer, or a launcher in the corner. Same definition, no forked markup.",
+    title: "One JSON, rendered for you",
+    body: "The definition is a document, and it reads your account: the greeting, the answers already filled in, and which questions you get at all.",
   },
 ];
 

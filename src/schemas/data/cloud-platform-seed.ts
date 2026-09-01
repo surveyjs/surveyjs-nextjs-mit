@@ -10,10 +10,22 @@ import type { SurveyData } from "../types";
  * a compliance line. Every line of the itemised quote is populated except the
  * storage overage, which Business's 2 TB allowance just covers — the one branch
  * worth leaving unlit so the allowance is visibly doing something.
+ *
+ * It also answers the questions that exist for only some accounts — `changeType`
+ * for a customer, `evaluationStage` for a prospect, the residency page for an EU
+ * one — so switching user on a filled form shows the shape changing rather than
+ * the form emptying. `compliance` and the email are left out: those come from the
+ * account.
  * Renderer-agnostic: depends on nothing but `SurveyData`.
  */
 export const cloudPlatformSample: SurveyData = {
+  changeType: "environments",
+  evaluationStage: "shortlist",
   workload: "platform",
+  // Deliberately answered, even though the definition would size it from the
+  // account's headcount: the quote below is the one the docs quote, and Prefill
+  // has to land on it for every account. Open the page without Prefill to see the
+  // account-derived value instead.
   projects: 25,
   dataVolumeGb: 2000,
   environments: [
@@ -26,9 +38,11 @@ export const cloudPlatformSample: SurveyData = {
   queryConcurrency: "10 to 50",
   ssoRequired: true,
   selfHosted: false,
-  compliance: ["soc2"],
+  baaRequired: true,
   supportTier: "businessHours",
+  dataRegion: "frankfurt",
+  dpaRequired: true,
+  subprocessorReview: true,
   startWhen: "This quarter",
   sendQuote: true,
-  contactEmail: "jordan.avery@example.com",
 };

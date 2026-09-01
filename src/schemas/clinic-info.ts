@@ -350,6 +350,39 @@ export const PREFERRED_TIMES: readonly { readonly value: string; readonly text: 
   { value: "any", text: "Any time you have" },
 ];
 
+/* ── what the chart already knows ───────────────────────────────────────────── */
+
+/**
+ * The problem list a returning patient's record can carry.
+ *
+ * The appointment form asks "is today about something we already treat?" — and
+ * the choices it offers are the ones on *this* patient's chart, not all nine.
+ * Each choice in the JSON carries `visibleIf: "{conditions} contains 'asthma'"`,
+ * so the list is assembled by survey-core from the account, not by us.
+ */
+export const CHART_CONDITIONS: readonly { readonly id: string; readonly label: string }[] = [
+  { id: "asthma", label: "Asthma" },
+  { id: "hypertension", label: "High blood pressure" },
+  { id: "diabetes", label: "Type 2 diabetes" },
+  { id: "thyroid", label: "Thyroid condition" },
+  { id: "migraine", label: "Migraine" },
+  { id: "arthritis", label: "Arthritis" },
+  { id: "anxiety", label: "Anxiety or depression" },
+  { id: "cholesterol", label: "High cholesterol" },
+  { id: "gerd", label: "Acid reflux" },
+];
+
+/** The same idea for the medication list, which drives the refill question. */
+export const CHART_MEDICATIONS: readonly { readonly id: string; readonly label: string }[] = [
+  { id: "albuterol", label: "Albuterol inhaler" },
+  { id: "lisinopril", label: "Lisinopril 10 mg" },
+  { id: "metformin", label: "Metformin 500 mg" },
+  { id: "levothyroxine", label: "Levothyroxine 75 mcg" },
+  { id: "atorvastatin", label: "Atorvastatin 20 mg" },
+  { id: "sumatriptan", label: "Sumatriptan 50 mg" },
+  { id: "sertraline", label: "Sertraline 50 mg" },
+];
+
 /* ── the derived summary ────────────────────────────────────────────────────── */
 
 export interface VisitSummary {

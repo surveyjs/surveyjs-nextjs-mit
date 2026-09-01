@@ -43,11 +43,12 @@ Deploy it to the cloud with [Vercel](https://vercel.com/new?utm_source=github&ut
 - **Theming with shadcn/ui.** The SurveyJS shadcn adapter (`survey-core/themes/adapters/shadcn-base-nova.css`) maps the form onto the same design tokens the rest of the app uses, so light/dark mode and radius/color changes apply to both at once. App-local tweaks go into [src/styles/](src/styles/).
 - **Edit and read-only modes.** [src/components/RecordsView.tsx](src/components/RecordsView.tsx) lists stored records and reuses the same definition to either display or edit one in a dialog.
 - **Live schema editing.** Each form has a `/configure` page with a Monaco JSON editor and a live preview ([src/components/SchemaEditor.tsx](src/components/SchemaEditor.tsx)). Edits are saved to `localStorage`, so the server keeps rendering the canonical definition and the prerendered HTML stays intact.
-- **Surveys embedded in somebody else’s site.** Four demos under [`/embedded`](src/app/embedded/), each rendered without the admin chrome (see the `(shell)` route group) and opened in a new tab from the sidebar. They all share one toolbar: swap the definition, move the form between an inline slot, a modal, a side drawer and a floating widget, prefill it, edit its JSON live, and recolour the host brand — which the survey follows, because both read the same shadcn tokens. Each demo opens in its own palette. The shared machinery is [useDemoChrome](src/components/embedded/useDemoChrome.ts), so the next demo is a page component and a route.
-  - `/embedded/feedback` — a mock product marketing site whose hero holds a satisfaction survey, with a plan finder as the toolbar's second definition. The finder derives a plan and a module set with `calculatedValues` and prices them with an `expression` question, against the pricing the page itself advertises.
-  - `/embedded/cloud` — a pricing page the survey **drives**. Answers leave the model through `onDataChange`, [quoteFor](src/schemas/cloud-platform-pricing.ts) turns them into an itemised quote, and the page re-prices itself: the quote panel, the recommended tier card, the module grid and the highlighted column of the comparison table. "See my plan" scrolls to the tier rather than showing a thank-you screen, and the built-in preview step (`showPreviewBeforeComplete`) plus a remount-with-the-same-answers "Change my answers" mean nothing is lost when a visitor reconsiders. Worth trying: move the form into the drawer and keep answering — the page behind it keeps up.
-  - `/embedded/shop` — a storefront, and the mechanic a merchandiser recognises on sight: a five-question quiz that **chooses the product**. Answers leave the model through `onDataChange`, [matchCoffee](src/schemas/shop-catalog.ts) ranks the catalogue against them, and the buy box re-points itself — bag, grind, size and delivery cadence, with the reasons spelled out underneath. Add to cart moves the store to its other page, where the toolbar’s second definition is a real checkout and the order summary is downstream of it: pick Express on the shipping step and the total moves while the form is still open. The cart and the checkout are plain shadcn surfaces, which is the point — a form that needed bespoke CSS to sit in them would be obvious immediately.
-  - `/embedded/clinic` — a mock US primary-care site, built to the conventions a patient reads without noticing: the utility bar, a provider directory with credentials, in-network plans, posted self-pay prices, the statutory notices. Its appointment request answers the question patients actually ask — [visitSummaryFor](src/schemas/clinic-info.ts) derives the copay from the plan and the visit type, flags an HMO referral, and builds the what-to-bring list; submitting scrolls to the clinician who will see them. The toolbar’s second definition is the full new-patient intake, because that pair is how a clinic really collects information: a short public form, and a long clinical one sent afterwards.
+- **Surveys embedded in somebody else’s site.** Three demos under [`/embedded`](src/app/embedded/), each rendered without the admin chrome (see the `(shell)` route group), each in its own brand colour, and each opened in a new tab from the sidebar. One host site, one form, sitting inline in the page the way a real embed does.
+
+  They share one toolbar, and it is deliberately down to two claims. **The form is JSON:** *Configure JSON live* opens the definition over the running page, and the form follows as you type. **The form is rendered for a person:** the same panel holds the signed-in user as a second JSON document, editable in place. Every demo passes that object to survey-core as one variable, so the definition reads `{user.firstName}` — in titles, in `defaultValueExpression` to arrive pre-answered, and in `visibleIf` to add or drop whole pages. Change Alex to John and the greeting, the values *and* the number of steps change. A third button, *Highlight SurveyJS Render*, scrolls to the form and outlines the one element it is drawn into, so there is no argument about which part of the page is the host site. See [demo-accounts.ts](src/components/embedded/demo-accounts.ts); the shared machinery is [useDemoChrome](src/components/embedded/useDemoChrome.ts), so the next demo is a page component and a route.
+  - `/embedded/feedback` — a mock product marketing site whose hero holds a satisfaction survey, addressed to the workspace member who is signed in. It greets them by name, works out how long they have been a customer from `monthsActive` rather than asking, gives a paying customer a question about plan fit and a three-week-old account a whole onboarding page instead, quotes their open support ticket by subject, names their CSM if they have one, and never asks for an email address it already has.
+  - `/embedded/cloud` — a pricing page the survey **drives**. Answers leave the model through `onDataChange`, [quoteFor](src/schemas/cloud-platform-pricing.ts) turns them into an itemised quote, and the page re-prices itself: the quote panel, the recommended tier card, the module grid and the highlighted column of the comparison table. "See my plan" scrolls to the tier rather than showing a thank-you screen, and the built-in preview step (`showPreviewBeforeComplete`) plus a remount-with-the-same-answers "Change my answers" mean nothing is lost when a visitor reconsiders. On top of that it opens on the CRM record: the project count is sized from the company’s headcount, the compliance boxes come from the account, an existing customer is asked what they are changing while a prospect is asked how far along they are, HIPAA on file adds a BAA question, and an EU account gets an entire data-residency page a US one never sees. Worth trying: prefill it, then switch account — the price moves and so does the length of the progress bar.
+  - `/embedded/clinic` — a mock US primary-care site, built to the conventions a patient reads without noticing: the utility bar, a provider directory with credentials, in-network plans, posted self-pay prices, the statutory notices. Its appointment request answers the question patients actually ask — [visitSummaryFor](src/schemas/clinic-info.ts) derives the copay from the plan and the visit type, flags an HMO referral, and builds the what-to-bring list; submitting scrolls to the clinician who will see them. And because a patient portal knows more about you than any other login you have, it is the sharpest of the three on personalisation: the office, the clinician, the plan, the name and the date of birth all arrive filled in, the identity fields stay locked until the patient says something has changed, the insurance-card fields are not there at all while a card is on file, “is this about something we already treat you for?” offers *that patient’s* conditions and the refill question *that patient’s* medications — both assembled choice by choice from the chart — and a first-time visitor gets an extra page nobody else sees.
 - **One place to swap in your own storage.** Every read and write goes through two files in [src/storage/](src/storage/), and nothing else in the app knows where the data lives — see [Storage](#storage-localstorage-here-your-database-in-production).
 
 ## Storage: `localStorage` here, your database in production
@@ -75,10 +76,10 @@ The folder holds four different kinds of thing, and only the first moves into th
 
 | | |
 | --- | --- |
-| `medical-form.ts`, `checkout.ts`, `insurance-claim.ts`, `plan-finder.ts`, `customer-satisfaction.ts`, `cloud-platform.ts`, `coffee-finder.ts`, `clinic-visit.ts` | **Move to the database** — one row each in `survey_schemas`. Keep the files as the seed, and as the fallback `loadSurveyJson` returns to when a row is missing. |
+| `medical-form.ts`, `checkout.ts`, `insurance-claim.ts`, `plan-finder.ts`, `customer-satisfaction.ts`, `cloud-platform.ts`, `clinic-visit.ts` | **Move to the database** — one row each in `survey_schemas`. Keep the files as the seed, and as the fallback `loadSurveyJson` returns to when a row is missing. |
 | `data/insurance-claim-seed.ts` | **Moves to the database** — rows in `claims`. |
-| `data/medical-form-seed.ts`, `data/checkout-seed.ts`, `data/plan-finder-seed.ts`, `data/customer-satisfaction-seed.ts`, `data/cloud-platform-seed.ts`, `data/coffee-finder-seed.ts`, `data/clinic-visit-seed.ts` | Demo data behind the "Prefill demo data" button. Delete them. |
-| `cloud-platform-pricing.ts`, `shop-catalog.ts`, `clinic-info.ts` | The demo host sites’ own catalogues and pricing rules, not survey definitions. Delete them with the demos, or replace them with whatever your real product catalogue is. |
+| `data/medical-form-seed.ts`, `data/checkout-seed.ts`, `data/plan-finder-seed.ts`, `data/customer-satisfaction-seed.ts`, `data/cloud-platform-seed.ts`, `data/clinic-visit-seed.ts` | Demo data behind the "Prefill demo data" button. Delete them. |
+| `cloud-platform-pricing.ts`, `clinic-info.ts` | The demo host sites’ own catalogues and pricing rules, not survey definitions. Delete them with the demos, or replace them with whatever your real product catalogue is. |
 | `types.ts`, `createSurveyModel.ts` | **Stay as they are.** Types and the model factory have nothing to do with storage. |
 | `index.ts` | Stays, smaller. `getSchemaDefinition` becomes the fallback path rather than the source of truth, since definitions now come from `loadSurveyJson`. |
 | `navigation.ts` | **Stays** if your set of forms is fixed. If users create forms at runtime, this moves to the database too and the routes become a single dynamic `/[formId]`. |
@@ -93,10 +94,9 @@ One matching change in the pages: `/configure` currently passes `getSchemaDefini
 | `/claims` | Patient intake / medical-insurance form — a paged wizard with a progress stepper, nested panels, matrix and dynamic-matrix questions, expressions and conditional visibility. |
 | `/checkout` | Multi-step checkout wizard — table of contents, required-field validation, input masks, panels gated by `visibleIf`, and a review page built from earlier answers via `{question}` piping. |
 | `/records` | Table of insurance-claim records; view one read-only or edit it in a dialog. The claim form mixes text, masked input, dropdown, radiogroup, checkbox, date, number, file upload and conditional panels. |
-| `/embedded/feedback` | Embedded demo — a mock product site whose hero hosts a satisfaction survey. |
-| `/embedded/cloud` | Embedded demo — a pricing page that re-prices itself from a platform configurator: tier, modules, environments, storage, support and compliance. |
-| `/embedded/shop` | Embedded demo — a coffee storefront where a five-question quiz picks the bag, the grind, the size and the delivery schedule, then a real checkout drives the order summary. |
-| `/embedded/clinic` | Embedded demo — a US clinic site whose appointment request estimates the copay, flags a needed referral and builds the what-to-bring list as it is answered. |
+| `/embedded/feedback` | Embedded demo — a mock product site whose hero hosts a satisfaction survey, rendered for the signed-in account. |
+| `/embedded/cloud` | Embedded demo — a pricing page that re-prices itself from a platform configurator, opened on what the CRM already knows. |
+| `/embedded/clinic` | Embedded demo — a US clinic site whose appointment request arrives filled in from the patient’s chart, estimates the copay and flags a needed referral. |
 | `/claims/configure`, `/checkout/configure`, `/records/configure` | JSON editor with a live preview of the form. |
 
 ## Project structure
@@ -106,19 +106,17 @@ src/
   app/
     (shell)/                    Pages inside the admin chrome, one folder per form
     embedded/                   The embedded demos — no admin chrome at all
-      feedback/  cloud/  shop/  clinic/
+      feedback/  cloud/  clinic/
   schemas/
     types.ts                    Shared types (survey-core only, no UI framework)
     createSurveyModel.ts        Model factory
-    medical-form.ts             The eight form definitions
+    medical-form.ts             The seven form definitions
     checkout.ts
     insurance-claim.ts
     plan-finder.ts
     customer-satisfaction.ts
     cloud-platform.ts
     cloud-platform-pricing.ts   Its price list, and the quote derived from answers
-    coffee-finder.ts
-    shop-catalog.ts             The roaster’s catalogue, the match and the cart arithmetic
     clinic-visit.ts
     clinic-info.ts              The clinic’s directory, plans, and the derived visit summary
     data/                       Demo response data / seed records
@@ -129,7 +127,7 @@ src/
     JsonEditor.tsx              Monaco wrapper (client-only)
     RecordsView.tsx             Records table + view/edit dialog
     AdminShell.tsx, Sidebar.tsx, ThemeSwitcher.tsx
-    embedded/                   The mock host sites, the shared toolbar and chrome
+    embedded/                   The mock host sites, the shared toolbar, and the demo accounts
     ui/                         shadcn/ui primitives
   storage/                      The only two files that touch stored data
     survey-json.ts              Survey definitions

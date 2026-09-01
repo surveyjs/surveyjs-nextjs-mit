@@ -6,21 +6,18 @@ import { brandBootScript } from "@/components/embedded/demo-controls";
 export const metadata: Metadata = {
   title: "Ridgeline Family Health — request an appointment",
   description:
-    "A mock US clinic page whose SurveyJS appointment request estimates the copay, flags a needed referral and builds the what-to-bring list as it is answered.",
+    "A mock US clinic page whose SurveyJS appointment request arrives filled in from the patient's chart, estimates the copay and flags a needed referral as it is answered.",
 };
 
 /**
- * Embedded demo: a US primary-care site.
- *
- * The short public request form opens the page; the toolbar also carries the full
- * new-patient intake, which is the other half of how a real clinic collects
- * information.
+ * Embedded demo: a US primary-care site whose public request form is rendered
+ * from the signed-in patient's portal record.
  */
 export default function EmbeddedClinicPage() {
   return (
     <>
       <script dangerouslySetInnerHTML={{ __html: brandBootScript(RIDGELINE_BRAND) }} />
-      <RidgelineDemo surveys={[DEMO_SURVEYS.clinicVisit, DEMO_SURVEYS.patientIntake]} />
+      <RidgelineDemo survey={DEMO_SURVEYS.clinicVisit} />
     </>
   );
 }

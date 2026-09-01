@@ -31,6 +31,8 @@ import {
 } from "@/schemas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SignedInChip } from "./SignedInChip";
+import { accountText } from "./demo-accounts";
 import { cn } from "@/lib/utils";
 
 /**
@@ -80,7 +82,14 @@ export function ClinicUtilityBar() {
   );
 }
 
-export function ClinicHeader({ onRequest }: { onRequest: () => void }) {
+export function ClinicHeader({
+  onRequest,
+  account,
+}: {
+  onRequest: () => void;
+  /** The patient whose portal record the form is rendered from. */
+  account: Record<string, unknown>;
+}) {
   return (
     <header className="bg-background/85 sticky top-0 z-40 border-b backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-6 px-6 py-3.5">
@@ -102,10 +111,24 @@ export function ClinicHeader({ onRequest }: { onRequest: () => void }) {
           <span>Insurance &amp; billing</span>
         </nav>
 
-        <Button size="sm" className="ml-auto" onClick={onRequest}>
-          <CalendarCheckIcon />
-          Request an appointment
-        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          <SignedInChip
+            account={account}
+            meta={
+              accountText(account, "mrn")
+                ? `MRN ${accountText(account, "mrn")} · ${accountText(
+                    account,
+                    "healthPlanLabel",
+                    "no plan on file",
+                  )}`
+                : undefined
+            }
+          />
+          <Button size="sm" onClick={onRequest}>
+            <CalendarCheckIcon />
+            Request an appointment
+          </Button>
+        </div>
       </div>
     </header>
   );

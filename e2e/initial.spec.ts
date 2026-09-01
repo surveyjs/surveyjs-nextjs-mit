@@ -5,7 +5,6 @@ const surveyRoutes = [
   "/checkout",
   "/embedded/feedback",
   "/embedded/cloud",
-  "/embedded/shop",
   "/embedded/clinic",
 ];
 const allRoutes = [
@@ -33,69 +32,6 @@ for (const route of surveyRoutes) {
     await expect(page.locator(".sd-root-modern").first()).toBeVisible();
   });
 }
-
-test("/embedded/feedback moves the same survey between placements", async ({ page }) => {
-  await page.goto("/embedded/feedback");
-  const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
-
-  // Inline: the survey is a section of the host page.
-  await expect(page.locator("#feedback .sd-root-modern")).toBeVisible();
-
-  await dock.getByRole("button", { name: "Floating widget" }).click();
-  await expect(page.locator("#feedback .sd-root-modern")).toHaveCount(0);
-  await expect(page.locator(".sd-root-modern").first()).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Close the feedback widget" }).first(),
-  ).toBeVisible();
-
-  // The toolbar has to stay usable over an open overlay — that is what
-  // `modal={false}` plus the outside-interaction guard buy.
-  await dock.getByRole("button", { name: "Modal dialog" }).click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await dock.getByRole("button", { name: "Inline section" }).click();
-  await expect(page.locator("#feedback .sd-root-modern")).toBeVisible();
-});
-
-test("/embedded/feedback derives a plan, a price and a module list from the answers", async ({
-  page,
-}) => {
-  await page.goto("/embedded/feedback");
-  const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
-  const card = page.locator("#feedback");
-
-  // This route opens on the satisfaction survey; the plan finder is the other
-  // definition the toolbar offers. Swapping to it also proves the point the
-  // switcher is there to make: the embedding does not care which one it holds.
-  await expect(card).toContainText("How are we doing?");
-  await dock.getByRole("button", { name: "Survey definition" }).click();
-  await page.getByRole("menuitem", { name: /Plan finder/ }).click();
-  await expect(card).toContainText("Find the right plan");
-
-  await dock.getByRole("button", { name: "Prefill" }).click();
-
-  // Prefill remounts the model and every Next re-renders the card, so each step
-  // waits for the page it landed on instead of clicking blind, and the button is
-  // re-resolved inside the card each time rather than held across a re-render.
-  // Assertions read the card's text: these are sentences with inline markup.
-  const clickNext = () => card.getByRole("button", { name: "Next" }).click();
-
-  await expect(card).toContainText("How do you plan today?");
-  await clickNext();
-  await expect(card).toContainText("What should it talk to on day one?");
-  await clickNext();
-
-  // 15 seats with two must-have modules lands on Business at $19 a seat, so the
-  // whole calculatedValues chain is under test, not just one expression.
-  await expect(card).toContainText("Your estimate so far");
-  await expect(card).toContainText("$285.00");
-
-  await clickNext();
-  await expect(card).toContainText("start you on the Business plan");
-  await expect(card).toContainText("Capacity — workload warnings");
-  await expect(card).toContainText("Portfolio — rollups across every project");
-  // Insights was only "nice to have", so its line stays hidden.
-  await expect(card).not.toContainText("Insights — cycle time");
-});
 
 test("/embedded/cloud re-prices the page as the configurator is answered", async ({
   page,
@@ -258,68 +194,180 @@ for (const route of allRoutes) {
   });
 }
 
-test("/embedded/shop lets the quiz pick the product and the checkout drive the total", async ({
+/**
+ * Edits the account document in the toolbar's JSON panel, the way a presenter
+ * would: patch a key or two and leave the rest alone.
+ *
+ * The panel holds two Monaco models. The account is the one that mentions
+ * `firstName` without being a survey definition — the clinic form has a question
+ * called `firstName` too, so `pages` is what tells them apart.
+ */
+async function patchUserJson(
+  page: import("@playwright/test").Page,
+  patch: Record<string, unknown>,
+) {
+  await page.evaluate((next) => {
+    const monaco = (window as unknown as { monaco: typeof import("monaco-editor") }).monaco;
+    const model = monaco.editor
+      .getModels()
+      .find((m) => m.getValue().includes('"firstName"') && !m.getValue().includes('"pages"'));
+    if (!model) throw new Error("the account editor is not on screen");
+    model.setValue(JSON.stringify({ ...JSON.parse(model.getValue()), ...next }, null, 2));
+  }, patch);
+}
+
+async function openJsonPanel(page: import("@playwright/test").Page) {
+  await page
+    .getByRole("toolbar", { name: "Embedded demo tools" })
+    .getByRole("button", { name: "Configure JSON live" })
+    .click();
+  // Monaco is a heavy dynamic import; under parallel workers it needs longer
+  // than the default expect timeout.
+  await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 30_000 });
+}
+
+test("/embedded/feedback renders the same definition differently per user", async ({
   page,
 }) => {
-  await page.goto("/embedded/shop");
-  const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
-  const product = page.locator("#product");
+  test.slow();
+  await page.goto("/embedded/feedback");
+  const card = page.locator("#feedback");
 
-  // Nothing answered yet: the store is selling its house blend.
-  await expect(product).toContainText("Cedar & Cocoa");
-  await expect(product).toContainText("Best seller");
+  // The host page and the survey are reading the same account object.
+  await expect(page.locator("header").first()).toContainText("Alex Rivera");
+  await expect(card).toContainText("Hi Alex, how are we doing?");
+  await expect(card).toContainText("Business plan");
 
-  await dock.getByRole("button", { name: "Prefill" }).click();
+  // `usagePeriod` was never asked: it is derived from the account's monthsActive
+  // by a defaultValueExpression, and 14 months is more than a year.
+  await expect(card).toContainText("More than a year");
 
-  // Espresso, milk and a sweet profile rank the dark roast first, and three to
-  // four cups a day is a 500 g bag every fortnight. None of that was picked by
-  // hand — the five answers re-pointed the page at a different product.
-  await expect(product).toContainText("Night Shift");
-  await expect(product).toContainText("Matched to your answers");
+  // Alex has an open ticket, so the Support step exists; Alex is not new, so the
+  // onboarding step does not. Both are whole pages, so this reads the progress
+  // bar — matched with its step number, because "Support" is also a row in the
+  // ratings matrix on the page below.
+  await expect(card).toContainText(/What matters\s*2\s*Support\s*3/);
+  await expect(card).not.toContainText("Getting started");
 
-  const why = page.getByRole("complementary", { name: "Why this coffee" });
-  await expect(why).toContainText("500 g");
-  await expect(why).toContainText("every 2 weeks");
+  await openJsonPanel(page);
+  await patchUserJson(page, {
+    firstName: "John",
+    lastName: "Park",
+    company: "Park Studio",
+    plan: "free",
+    planLabel: "Free",
+    monthsActive: 0,
+    openTicket: false,
+  });
 
-  await product.getByRole("button", { name: /Add to cart/ }).click();
-
-  // Adding to the cart is also what moves the store to its other page, which is
-  // the other definition the toolbar holds.
-  const summary = page.getByRole("complementary", { name: "Order summary" });
-  await expect(summary).toBeVisible();
-  // 17 x 1.85 for the 500 g bag, less the 10% standing-order discount.
-  await expect(summary).toContainText("$31.45");
-  await expect(summary).toContainText("$3.15");
-  await expect(summary).toContainText("Standard");
-
-  // The summary is downstream of the checkout form, not beside it: prefilling
-  // the checkout picks Express, and the shipping line follows.
-  await dock.getByRole("button", { name: "Prefill" }).click();
-  await expect(summary).toContainText("Express (2 days)");
-  await expect(summary).toContainText("$12.00");
+  // Same JSON definition, a different user: a new greeting, a different plan, and
+  // the set of steps has changed — nought months means onboarding questions, and
+  // no ticket means no support step.
+  await expect(card).toContainText("Hi John, how are we doing?");
+  await expect(card).toContainText("Free plan");
+  await expect(card).toContainText("Less than a month");
+  await expect(card).toContainText(/Getting started\s*2/);
+  await expect(card).not.toContainText(/Support\s*3/);
+  await expect(page.locator("header").first()).toContainText("John Park");
 });
 
-test("/embedded/clinic estimates the visit from the answers", async ({ page }) => {
+test("/embedded/feedback opens both JSON editors from one button", async ({ page }) => {
+  await page.goto("/embedded/feedback");
+
+  await openJsonPanel(page);
+
+  const panel = page.getByRole("complementary", { name: "Live JSON" });
+  await expect(panel.getByRole("region", { name: "The signed-in user" })).toBeVisible();
+  await expect(panel.getByRole("region", { name: "The survey definition" })).toBeVisible();
+
+  // The wired-keys line is computed from the definition on screen, not a list.
+  await expect(panel).toContainText("firstName");
+  await expect(panel).toContainText("monthsActive");
+});
+
+test("the demo toolbar links home and can outline the survey", async ({ page }) => {
+  await page.goto("/embedded/cloud");
+  const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
+  const html = page.locator("html");
+
+  await expect(dock.getByRole("link", { name: "SurveyJS demos" })).toHaveAttribute(
+    "href",
+    "/claims",
+  );
+
+  const card = page.locator("[data-survey-root]");
+  await expect(html).not.toHaveAttribute("data-demo-highlight", /.*/);
+  await expect(card).toHaveCSS("outline-style", "none");
+
+  await dock.getByRole("button", { name: "Highlight SurveyJS Render" }).click();
+
+  // The attribute goes on <html>; what matters is that the rule it keys reaches
+  // the one element marking where SurveyJS draws.
+  await expect(html).toHaveAttribute("data-demo-highlight", "");
+  await expect(card).toHaveCSS("outline-style", "dashed");
+
+  await dock.getByRole("button", { name: "Highlight SurveyJS Render" }).click();
+  await expect(card).toHaveCSS("outline-style", "none");
+});
+
+test("/embedded/clinic fills the request from the patient's chart", async ({ page }) => {
+  test.slow();
   await page.goto("/embedded/clinic");
   const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
   const panel = page.getByRole("complementary", { name: "Your visit" });
+  const card = page.locator("#request");
 
-  await expect(panel).toContainText("Answer the first question");
+  // Nothing has been answered, and the summary is already populated: the office,
+  // the clinician and the coverage came from the portal record.
+  await expect(panel).not.toContainText("Answer the first question");
+  await expect(panel).toContainText("Westbridge");
+  await expect(panel).toContainText("Alicia Navarro, MD");
+  await expect(card).toContainText("Welcome back, Maria");
+
+  // Her chart has asthma and hypertension on it, so a question exists that a new
+  // patient never sees.
+  await expect(card).toContainText("Is this about something we already treat you for?");
 
   await dock.getByRole("button", { name: "Prefill" }).click();
 
-  // Behavioral health bills at the specialist copay, and the prefilled plan is
-  // the HMO — so the panel shows $35 and the referral warning rather than the
-  // happy path.
+  // Behavioral health bills at the specialist copay, and the plan on file is the
+  // HMO — so the panel shows $35 and the referral warning rather than the happy
+  // path. The plan was never typed in.
   await expect(panel).toContainText("Behavioral health");
-  await expect(panel).toContainText("Samuel Reyes, MD");
   await expect(panel).toContainText("$35");
   await expect(panel).toContainText("referral");
 
-  // A new patient gets a longer what-to-bring list.
-  await expect(panel).toContainText("list of your current medications");
-
   // The directory and the office list mark what the request names.
-  await expect(page.locator("#provider-reyes")).toContainText("Requested");
+  await expect(page.locator("#provider-navarro")).toContainText("Requested");
   await expect(page.locator("#location-westbridge")).toContainText("Chosen");
+
+  await openJsonPanel(page);
+
+  // Editing the chart keeps the answers and moves everything the chart owns:
+  // Medicare Advantage bills a $20 specialist copay and needs no referral.
+  await patchUserJson(page, {
+    healthPlanOnFile: "statecare",
+    healthPlanLabel: "StateCare Advantage (Medicare)",
+    homeLocation: "marlowe",
+    primaryProvider: "weiss",
+  });
+
+  await expect(panel).toContainText("Behavioral health");
+  await expect(panel).toContainText("Marlowe");
+  await expect(panel).toContainText("Hannah Weiss, DO");
+  await expect(panel).toContainText("$20");
+  await expect(panel).not.toContainText("referral");
+
+  // And one flag turns the shorter form into the longer one.
+  await patchUserJson(page, {
+    isNewPatient: true,
+    conditions: [],
+    medications: [],
+    openRefills: false,
+  });
+
+  await expect(card).toContainText("You are new to Ridgeline");
+  await expect(card).toContainText("New here");
+  await expect(card).not.toContainText("Is this about something we already treat you for?");
+  await expect(panel).toContainText("New to Ridgeline");
 });

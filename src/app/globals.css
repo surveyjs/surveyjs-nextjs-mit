@@ -183,10 +183,10 @@
   --demo-brand: var(--primary);
 }
 
-/* The toolbar's brand picker sets `--demo-brand` and this attribute on <html>;
-   from there the host site's primary colour IS the brand, in both colour
-   schemes — `html[…]` outranks the `.dark` block above. The survey reads the
-   same tokens as every button on the page, so it re-skins with it. */
+/* Each demo route sets `--demo-brand` and this attribute on <html> as the page
+   is parsed; from there the host site's primary colour IS the brand, in both
+   colour schemes — `html[…]` outranks the `.dark` block above. The survey reads
+   the same tokens as every button on the page, so it re-skins with it. */
 html[data-demo-brand] {
   --primary: var(--demo-brand);
   --primary-foreground: var(--demo-brand-foreground);
@@ -228,6 +228,52 @@ html[data-demo-brand] {
 .demo-brand-soft {
   background-color: color-mix(in oklab, var(--demo-brand) 12%, transparent);
   color: color-mix(in oklab, var(--demo-brand) 78%, var(--foreground));
+}
+
+/* "Highlight SurveyJS Render" in the demo toolbar sets this attribute on <html>.
+   Everything SurveyJS draws lives inside `[data-survey-root]`, so one rule marks
+   the boundary between the host site and the form — which is the question every
+   reviewer asks about an embedded demo. The ring pulses because a static outline
+   on a page this busy is easy to miss. */
+html[data-demo-highlight] [data-survey-root] {
+  outline: 2px dashed var(--demo-brand);
+  outline-offset: 3px;
+  animation: demo-survey-ring 1.9s ease-out infinite;
+}
+
+html[data-demo-highlight] [data-survey-root]::after {
+  content: "SurveyJS renders this";
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 5;
+  padding: 0.25rem 0.5rem;
+  border-bottom-left-radius: 0.5rem;
+  background-color: var(--demo-brand);
+  color: var(--demo-brand-foreground, oklch(0.99 0 0));
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+@keyframes demo-survey-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--demo-brand) 40%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 16px color-mix(in oklab, var(--demo-brand) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--demo-brand) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-demo-highlight] [data-survey-root] {
+    animation: none;
+  }
 }
 
 /* The toolbar sits over the page and should read as an overlay, not as part of

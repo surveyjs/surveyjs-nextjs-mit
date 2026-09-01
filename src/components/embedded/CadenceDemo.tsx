@@ -14,45 +14,50 @@ import {
   Testimonials,
 } from "./CadenceSite";
 import { DemoDock } from "./DemoDock";
-import { OverlayPlacements, PlacementCallout } from "./DemoPlacements";
 import { EmbeddedSurvey, SurveyCard } from "./EmbeddedSurvey";
-import { SurveyJsonPanel } from "./SurveyJsonPanel";
+import { DemoJsonPanel } from "./DemoJsonPanel";
 import { useDemoChrome } from "./useDemoChrome";
+import { CADENCE_ACCOUNT } from "./demo-accounts";
 import type { DemoSurvey } from "./demo-controls";
 
 const ANCHOR = "feedback";
+export const CADENCE_BRAND = "indigo";
 
 /**
- * Embedded demo #1 and #2: an ordinary product marketing site, with a survey in
- * its hero. Which survey depends on the sidebar entry that opened it — the
- * toolbar can swap between them either way.
+ * Embedded demo: an ordinary product marketing site with a survey in its hero.
  *
  * The page it lives on has no admin chrome by design — see `src/app/layout.tsx`
- * and the `(shell)` route group. The sidebar entries open it in a new tab for the
- * same reason, and the toolbar offers full screen from there.
+ * and the `(shell)` route group — and the sidebar entry opens it in a new tab so
+ * nothing of this template frames it.
+ *
+ * The survey is addressed to whoever is signed in: the header shows the account,
+ * and the form greets them by name, works out how long they have been a customer,
+ * asks a paying customer about plan fit and a three-week-old account about
+ * onboarding, and never asks for an email it already has. All of that is in the
+ * JSON, reading `{user.…}` — see `demo-accounts.ts`.
  */
-export function CadenceDemo({ surveys }: { surveys: readonly DemoSurvey[] }) {
-  const chrome = useDemoChrome({ surveys, anchorId: ANCHOR });
-
-  const survey = (
-    <EmbeddedSurvey key={chrome.runKey} json={chrome.json} data={chrome.seed} />
-  );
+export function CadenceDemo({ survey }: { survey: DemoSurvey }) {
+  const chrome = useDemoChrome({
+    survey,
+    account: CADENCE_ACCOUNT,
+    anchorId: ANCHOR,
+    brandId: CADENCE_BRAND,
+  });
 
   return (
     <div className="bg-background text-foreground flex min-h-svh flex-col">
-      <SiteHeader onFeedback={chrome.requestSurvey} />
+      <SiteHeader onFeedback={chrome.requestSurvey} account={chrome.account} />
 
       <main className="flex-1">
         <Hero>
-          {chrome.placement === "inline" ? (
-            <SurveyCard>{survey}</SurveyCard>
-          ) : (
-            <PlacementCallout
-              placement={chrome.placement}
-              title={chrome.activeSurvey.label}
-              onOpen={() => chrome.setOverlayOpen(true)}
+          <SurveyCard>
+            <EmbeddedSurvey
+              key={chrome.runKey}
+              json={chrome.json}
+              data={chrome.seed}
+              variables={chrome.variables}
             />
-          )}
+          </SurveyCard>
         </Hero>
 
         <EmbedNotes />
@@ -67,16 +72,7 @@ export function CadenceDemo({ surveys }: { surveys: readonly DemoSurvey[] }) {
 
       <SiteFooter />
 
-      <OverlayPlacements
-        placement={chrome.placement}
-        open={chrome.overlayOpen}
-        onOpenChange={chrome.setOverlayOpen}
-        label={chrome.activeSurvey.label}
-      >
-        {survey}
-      </OverlayPlacements>
-
-      <SurveyJsonPanel {...chrome.jsonPanelProps} />
+      <DemoJsonPanel {...chrome.panelProps} />
       <DemoDock {...chrome.dockProps} />
     </div>
   );

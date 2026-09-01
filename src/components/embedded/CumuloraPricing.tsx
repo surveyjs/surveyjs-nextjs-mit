@@ -11,6 +11,8 @@ import {
   type CloudQuote,
 } from "@/schemas";
 import { Button } from "@/components/ui/button";
+import { SignedInChip } from "./SignedInChip";
+import { accountText } from "./demo-accounts";
 import {
   Table,
   TableBody,
@@ -58,7 +60,14 @@ export function CumuloraMark({ className }: { className?: string }) {
 
 const NAV_LINKS = ["Platform", "Modules", "Pricing", "Docs", "Changelog"];
 
-export function PricingHeader({ onConfigure }: { onConfigure: () => void }) {
+export function PricingHeader({
+  onConfigure,
+  account,
+}: {
+  onConfigure: () => void;
+  /** The account record the configurator is being rendered for. */
+  account: Record<string, unknown>;
+}) {
   return (
     <header className="bg-background/70 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30 border-b backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-6 px-6">
@@ -79,10 +88,14 @@ export function PricingHeader({ onConfigure }: { onConfigure: () => void }) {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1.5">
-          <Button variant="ghost" size="sm" className="hidden md:inline-flex">
-            Sign in
-          </Button>
+        <div className="ml-auto flex items-center gap-2">
+          <SignedInChip
+            account={account}
+            meta={`${accountText(account, "companyName")} · ${accountText(
+              account,
+              "regionLabel",
+            )}`}
+          />
           <Button size="sm" className="demo-brand-bg hover:opacity-90" onClick={onConfigure}>
             Price it up
           </Button>

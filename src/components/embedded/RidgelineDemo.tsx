@@ -2,11 +2,9 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { visitSummaryFor, type SurveyData } from "@/schemas";
-import { cn } from "@/lib/utils";
 import { DemoDock } from "./DemoDock";
-import { OverlayPlacements, PlacementCallout } from "./DemoPlacements";
 import { EmbeddedSurvey, SurveyCard } from "./EmbeddedSurvey";
-import { SurveyJsonPanel } from "./SurveyJsonPanel";
+import { DemoJsonPanel } from "./DemoJsonPanel";
 import {
   ClinicFooter,
   ClinicHeader,
@@ -20,12 +18,11 @@ import {
   VisitSummaryPanel,
 } from "./RidgelineSite";
 import { useDemoChrome } from "./useDemoChrome";
+import { RIDGELINE_ACCOUNT } from "./demo-accounts";
 import type { DemoSurvey } from "./demo-controls";
 
 const ANCHOR = "request";
-const INTAKE_ID = "medical-form";
 export const RIDGELINE_BRAND = "emerald";
-const BRAND = RIDGELINE_BRAND;
 
 /**
  * Embedded demo: a US clinic page whose appointment form prices the visit.
@@ -35,24 +32,28 @@ const BRAND = RIDGELINE_BRAND;
  * patient reads without noticing: the utility bar, the provider directory with
  * credentials, in-network plans, posted self-pay prices, the statutory notices.
  *
- * The mechanic is the one from the Cumulora demo, pointed at a question patients
- * care about more than any other: **what will this visit cost me.** Every answer
- * flows out through `onDataChange`, `visitSummaryFor` derives the copay, the
- * referral warning and the what-to-bring list, and the page re-renders around it —
- * including the provider card and the office card the request names.
+ * Two mechanics run at once here. The page is downstream of the form: every
+ * answer flows out through `onDataChange`, `visitSummaryFor` derives the copay,
+ * the referral warning and the what-to-bring list, and the page re-renders around
+ * it — including the provider card and the office card the request names.
  *
- * The toolbar carries a second definition, the full new-patient intake, because
- * the pair is the honest story of a clinic: a short public request form, and a
- * long clinical one sent afterwards. Same embedding, same styling, no bespoke CSS
- * for either.
+ * And the form is downstream of the patient. A portal knows who you are, so the
+ * office, the clinician, the plan and the identity fields all arrive filled, the
+ * insurance-card fields are absent while a card is on file, and the questions
+ * about existing conditions and refills are built from that patient's own chart.
+ * Set `isNewPatient` to true in the JSON panel and watch it invert: Maria
+ * confirms four things, a first-time patient gets an extra page.
  */
-export function RidgelineDemo({ surveys }: { surveys: readonly DemoSurvey[] }) {
-  const chrome = useDemoChrome({ surveys, anchorId: ANCHOR, brandId: BRAND });
+export function RidgelineDemo({ survey }: { survey: DemoSurvey }) {
+  const chrome = useDemoChrome({
+    survey,
+    account: RIDGELINE_ACCOUNT,
+    anchorId: ANCHOR,
+    brandId: RIDGELINE_BRAND,
+  });
 
   const [data, setData] = useState<SurveyData>({});
   const [submitted, setSubmitted] = useState(false);
-
-  const isIntake = chrome.activeSurvey.id === INTAKE_ID;
 
   // Stable, so it never re-subscribes the survey's event handlers.
   const handleDataChange = useCallback((next: SurveyData) => setData(next), []);
@@ -81,32 +82,10 @@ export function RidgelineDemo({ surveys }: { surveys: readonly DemoSurvey[] }) {
     chrome.resumeWith(data);
   }, [chrome, data]);
 
-  const survey = (
-    <EmbeddedSurvey
-      key={chrome.runKey}
-      json={chrome.json}
-      data={chrome.seed}
-      onDataChange={isIntake ? undefined : handleDataChange}
-      onComplete={isIntake ? undefined : handleComplete}
-    />
-  );
-
-  const inline = chrome.placement === "inline";
-
-  const sidePanel = isIntake ? (
-    <IntakeNote />
-  ) : (
-    <VisitSummaryPanel
-      summary={summary}
-      submitted={submitted}
-      onChangeAnswers={changeAnswers}
-    />
-  );
-
   return (
     <div className="bg-background text-foreground flex min-h-svh flex-col">
       <ClinicUtilityBar />
-      <ClinicHeader onRequest={chrome.requestSurvey} />
+      <ClinicHeader onRequest={chrome.requestSurvey} account={chrome.account} />
 
       <main className="flex-1">
         <section className="relative overflow-hidden">
@@ -114,37 +93,29 @@ export function RidgelineDemo({ surveys }: { surveys: readonly DemoSurvey[] }) {
           <div className="relative mx-auto w-full max-w-6xl px-6 pb-14">
             <ClinicIntro />
 
-            {/* Form left, summary right — and the two swap in an overlay
-                placement, because a right-hand drawer would otherwise land on
-                top of the panel that is the whole point of watching. */}
+            {/* Form left, summary right: the estimate has to be beside the
+                question that changes it. */}
             <div
               id={ANCHOR}
-              className={cn(
-                "grid scroll-mt-24 gap-8",
-                inline
-                  ? "lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]"
-                  : "lg:grid-cols-2",
-              )}
+              className="grid scroll-mt-24 gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]"
             >
-              {inline ? (
-                <>
-                  <div className="min-w-0">
-                    <SurveyCard>{survey}</SurveyCard>
-                  </div>
-                  {sidePanel}
-                </>
-              ) : (
-                <>
-                  {sidePanel}
-                  <div className="min-w-0">
-                    <PlacementCallout
-                      placement={chrome.placement}
-                      title={chrome.activeSurvey.label}
-                      onOpen={() => chrome.setOverlayOpen(true)}
-                    />
-                  </div>
-                </>
-              )}
+              <div className="min-w-0">
+                <SurveyCard>
+                  <EmbeddedSurvey
+                    key={chrome.runKey}
+                    json={chrome.json}
+                    data={chrome.seed}
+                    variables={chrome.variables}
+                    onDataChange={handleDataChange}
+                    onComplete={handleComplete}
+                  />
+                </SurveyCard>
+              </div>
+              <VisitSummaryPanel
+                summary={summary}
+                submitted={submitted}
+                onChangeAnswers={changeAnswers}
+              />
             </div>
           </div>
         </section>
@@ -158,44 +129,8 @@ export function RidgelineDemo({ surveys }: { surveys: readonly DemoSurvey[] }) {
 
       <ClinicFooter />
 
-      <OverlayPlacements
-        placement={chrome.placement}
-        open={chrome.overlayOpen}
-        onOpenChange={chrome.setOverlayOpen}
-        label={chrome.activeSurvey.label}
-      >
-        {survey}
-      </OverlayPlacements>
-
-      <SurveyJsonPanel {...chrome.jsonPanelProps} />
+      <DemoJsonPanel {...chrome.panelProps} />
       <DemoDock {...chrome.dockProps} />
     </div>
-  );
-}
-
-/**
- * What sits where the visit summary usually is while the long intake form is
- * loaded. The intake has no cost to estimate — it is the form a patient fills in
- * *after* the appointment exists — so the panel says so rather than sitting empty.
- */
-function IntakeNote() {
-  return (
-    <aside aria-label="About this form" className="bg-card sticky top-24 rounded-xl border p-5 shadow-sm">
-      <h2 className="text-[15px] font-semibold">New patient intake</h2>
-      <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-        This is the second form a clinic needs, and the one patients used to fill in on a clipboard
-        in the waiting room: history, medications, allergies, insurance, consents and a signature.
-        Ridgeline texts a link to it once the appointment is confirmed.
-      </p>
-      <ul className="text-muted-foreground mt-4 space-y-2 text-sm">
-        <li>· A matrix of past diagnoses, one row per condition.</li>
-        <li>· A dynamic table of allergies the patient adds rows to.</li>
-        <li>· Consent to treatment and a HIPAA acknowledgement, both required.</li>
-      </ul>
-      <p className="text-muted-foreground mt-4 text-xs leading-relaxed">
-        Same page, same embedding, same shadcn adapter as the short request form beside it — switch
-        back with the toolbar at the bottom of the screen.
-      </p>
-    </aside>
   );
 }

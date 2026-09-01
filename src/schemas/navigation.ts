@@ -4,7 +4,6 @@ export type NavId =
   | "records"
   | "embeddedFeedback"
   | "embeddedCloud"
-  | "embeddedShop"
   | "embeddedClinic";
 
 export interface NavItem {
@@ -47,7 +46,7 @@ export const navItems: readonly NavItem[] = [
     id: "embeddedFeedback",
     label: "Embedded: Give feedback",
     path: "/embedded/feedback",
-    description: "A satisfaction survey inside a product marketing site.",
+    description: "A satisfaction survey inside a product marketing site, addressed to the signed-in user.",
     schemaId: "customer-satisfaction",
     openInNewTab: true,
   },
@@ -55,23 +54,16 @@ export const navItems: readonly NavItem[] = [
     id: "embeddedCloud",
     label: "Embedded: Cloud Platform",
     path: "/embedded/cloud",
-    description: "A pricing page the survey re-prices live as you answer.",
+    description: "A pricing page whose configurator opens on the account's own numbers.",
     schemaId: "cloud-platform",
-    openInNewTab: true,
-  },
-  {
-    id: "embeddedShop",
-    label: "Embedded: Coffee shop",
-    path: "/embedded/shop",
-    description: "A storefront where a five-question quiz picks the product and fills the cart.",
-    schemaId: "coffee-finder",
     openInNewTab: true,
   },
   {
     id: "embeddedClinic",
     label: "Embedded: Family clinic",
     path: "/embedded/clinic",
-    description: "A US clinic page whose appointment form estimates what the visit costs.",
+    description:
+      "A US clinic page whose appointment form arrives already filled from the patient's chart.",
     schemaId: "clinic-visit",
     openInNewTab: true,
   },

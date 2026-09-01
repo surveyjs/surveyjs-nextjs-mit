@@ -2,11 +2,9 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { quoteFor, type SurveyData } from "@/schemas";
-import { cn } from "@/lib/utils";
 import { DemoDock } from "./DemoDock";
-import { OverlayPlacements, PlacementCallout } from "./DemoPlacements";
 import { EmbeddedSurvey, SurveyCard } from "./EmbeddedSurvey";
-import { SurveyJsonPanel } from "./SurveyJsonPanel";
+import { DemoJsonPanel } from "./DemoJsonPanel";
 import {
   ComparisonTable,
   ModuleGrid,
@@ -18,29 +16,41 @@ import {
   QuotePanel,
 } from "./CumuloraPricing";
 import { useDemoChrome } from "./useDemoChrome";
+import { CUMULORA_ACCOUNT } from "./demo-accounts";
 import type { DemoSurvey } from "./demo-controls";
 
 const ANCHOR = "configure";
+export const CUMULORA_BRAND = "rose";
 
 /**
- * Embedded demo #3: a pricing page that re-prices itself from the survey.
+ * Embedded demo: a pricing page that re-prices itself from the survey.
  *
- * The other demos show that a SurveyJS form can look native inside somebody's
+ * The feedback demo shows that a SurveyJS form can look native inside somebody's
  * site. This one shows the thing that is actually hard to get elsewhere: the
  * survey model as the page's state. Every answer flows out through
  * `onDataChange`, `quoteFor` turns it into an itemised quote, and the page
  * re-renders around it — the quote panel, the recommended plan card, the module
  * grid, the highlighted column of the comparison table.
  *
+ * On top of that it opens on the account rather than on an empty form: the
+ * project count is sized from the company's headcount, the compliance boxes come
+ * from the record, an existing customer is asked what they are changing, and an
+ * EU account gets an entire data-residency page that a US one never sees.
+ *
  * Two details worth watching in a presentation:
- *  - Move the form into the side drawer from the toolbar, then answer. The page
- *    behind it re-prices live while the drawer is open.
+ *  - open the JSON panel and change the account's `region` to `"eu"`: the price
+ *    stays, the answers stay, and the progress bar grows a residency step;
  *  - "See my plan" scrolls to the recommended tier; "Change my answers" comes
  *    back with every answer still in place, because the survey is remounted with
  *    the data it already had rather than reset.
  */
-export function CumuloraDemo({ surveys }: { surveys: readonly DemoSurvey[] }) {
-  const chrome = useDemoChrome({ surveys, anchorId: ANCHOR });
+export function CumuloraDemo({ survey }: { survey: DemoSurvey }) {
+  const chrome = useDemoChrome({
+    survey,
+    account: CUMULORA_ACCOUNT,
+    anchorId: ANCHOR,
+    brandId: CUMULORA_BRAND,
+  });
 
   const [data, setData] = useState<SurveyData>({});
   const [submitted, setSubmitted] = useState(false);
@@ -56,38 +66,25 @@ export function CumuloraDemo({ surveys }: { surveys: readonly DemoSurvey[] }) {
       ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [quote.plan.id]);
 
-  const handleComplete = useCallback(
-    (next: SurveyData) => {
-      setData(next);
-      setSubmitted(true);
-      // The result is a place on the page, not a thank-you screen.
-      requestAnimationFrame(() =>
-        document
-          .getElementById(`plan-${quoteFor(next).plan.id}`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" }),
-      );
-    },
-    [],
-  );
+  const handleComplete = useCallback((next: SurveyData) => {
+    setData(next);
+    setSubmitted(true);
+    // The result is a place on the page, not a thank-you screen.
+    requestAnimationFrame(() =>
+      document
+        .getElementById(`plan-${quoteFor(next).plan.id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+    );
+  }, []);
 
   const changeAnswers = useCallback(() => {
     setSubmitted(false);
     chrome.resumeWith(data);
   }, [chrome, data]);
 
-  const survey = (
-    <EmbeddedSurvey
-      key={chrome.runKey}
-      json={chrome.json}
-      data={chrome.seed}
-      onDataChange={handleDataChange}
-      onComplete={handleComplete}
-    />
-  );
-
   return (
     <div className="bg-background text-foreground flex min-h-svh flex-col">
-      <PricingHeader onConfigure={chrome.requestSurvey} />
+      <PricingHeader onConfigure={chrome.requestSurvey} account={chrome.account} />
 
       <main className="flex-1">
         <section className="relative overflow-hidden">
@@ -95,56 +92,30 @@ export function CumuloraDemo({ surveys }: { surveys: readonly DemoSurvey[] }) {
           <div className="relative mx-auto w-full max-w-6xl px-6 pb-16">
             <PricingIntro />
 
-            {/* Inline: form on the left, quote on the right, the way a real
-                configurator reads. In an overlay placement the two swap, because
-                a right-hand drawer would otherwise sit on top of the quote — and
-                watching the quote keep up while the drawer is open is the single
-                best thing to show in this demo. */}
+            {/* Form on the left, quote on the right, the way a real configurator
+                reads. */}
             <div
               id={ANCHOR}
-              className={cn(
-                "grid scroll-mt-20 gap-8",
-                chrome.placement === "inline"
-                  ? "lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]"
-                  : "lg:grid-cols-2",
-              )}
+              className="grid scroll-mt-20 gap-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]"
             >
-              {chrome.placement === "inline" ? (
-                <>
-                  <div className="min-w-0">
-                    <SurveyCard>{survey}</SurveyCard>
-                  </div>
-                  <QuotePanel
-                    quote={quote}
-                    submitted={submitted}
-                    onSeePlan={scrollToPlan}
+              <div className="min-w-0">
+                <SurveyCard>
+                  <EmbeddedSurvey
+                    key={chrome.runKey}
+                    json={chrome.json}
+                    data={chrome.seed}
+                    variables={chrome.variables}
+                    onDataChange={handleDataChange}
+                    onComplete={handleComplete}
                   />
-                </>
-              ) : (
-                <>
-                  <QuotePanel
-                    quote={quote}
-                    submitted={submitted}
-                    onSeePlan={scrollToPlan}
-                  />
-                  <div className="min-w-0">
-                    <PlacementCallout
-                      placement={chrome.placement}
-                      title="Configure your platform"
-                      onOpen={() => chrome.setOverlayOpen(true)}
-                    />
-                  </div>
-                </>
-              )}
+                </SurveyCard>
+              </div>
+              <QuotePanel quote={quote} submitted={submitted} onSeePlan={scrollToPlan} />
             </div>
           </div>
         </section>
 
-        <PlanCards
-          quote={quote}
-          submitted={submitted}
-          onChangeAnswers={changeAnswers}
-        />
+        <PlanCards quote={quote} submitted={submitted} onChangeAnswers={changeAnswers} />
         <ModuleGrid
           selectedIds={Array.isArray(data.modules) ? (data.modules as string[]) : []}
         />
@@ -154,16 +125,7 @@ export function CumuloraDemo({ surveys }: { surveys: readonly DemoSurvey[] }) {
 
       <PricingFooter />
 
-      <OverlayPlacements
-        placement={chrome.placement}
-        open={chrome.overlayOpen}
-        onOpenChange={chrome.setOverlayOpen}
-        label={chrome.activeSurvey.label}
-      >
-        {survey}
-      </OverlayPlacements>
-
-      <SurveyJsonPanel {...chrome.jsonPanelProps} />
+      <DemoJsonPanel {...chrome.panelProps} />
       <DemoDock {...chrome.dockProps} />
     </div>
   );

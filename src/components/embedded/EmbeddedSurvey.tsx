@@ -15,10 +15,9 @@ import "@/styles/survey-overrides-base-nova.css";
  * The survey as a host site embeds it: no admin chrome, no page header, and no
  * wrapper of its own beyond the card the host page would have used anyway.
  *
- * Every placement in every demo renders this same component with the same JSON —
- * the only difference between "inline section" and "floating widget" is which
- * container it is mounted in, and swapping the definition in the toolbar changes
- * nothing here either.
+ * All three demos render this same component. What differs between them is the
+ * JSON they pass and the `variables` they pass with it — nothing in here knows
+ * which site it is standing in.
  *
  * `onDataChange` is what lets a host page price itself from the answers as they
  * are given. It fires for plain answers, dynamic-panel edits and matrix cells,
@@ -27,16 +26,26 @@ import "@/styles/survey-overrides-base-nova.css";
 export function EmbeddedSurvey({
   json,
   data,
+  variables,
   onDataChange,
   onComplete,
 }: {
   json: SurveyJSON;
   /** Prefilled answers. A new object remounts the model, which "Reset" wants. */
   data?: SurveyData;
+  /**
+   * What the host app already knows about the visitor. The definition reads it
+   * with `{name}`, so the same JSON renders differently per user — see
+   * `demo-accounts.ts`.
+   */
+  variables?: Readonly<Record<string, unknown>>;
   onDataChange?: (data: SurveyData) => void;
   onComplete?: (data: SurveyData) => void;
 }) {
-  const model = useMemo(() => createSurveyModel(json, { data }), [json, data]);
+  const model = useMemo(
+    () => createSurveyModel(json, { data, variables }),
+    [json, data, variables],
+  );
 
   useEffect(() => {
     if (!onDataChange) return;
@@ -72,7 +81,13 @@ export function EmbeddedSurvey({
   return <Survey model={model} />;
 }
 
-/** The container a host page puts a form in — a plain shadcn card. */
+/**
+ * The container a host page puts a form in — a plain shadcn card.
+ *
+ * `data-survey-root` marks the boundary of what SurveyJS draws, so the toolbar's
+ * "Highlight SurveyJS Render" can outline it. Nothing else on these pages carries
+ * the attribute: everything outside it is the mock site's own markup.
+ */
 export function SurveyCard({
   className,
   children,
@@ -81,7 +96,13 @@ export function SurveyCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn("bg-card overflow-hidden rounded-xl border shadow-sm", className)}>
+    <div
+      data-survey-root=""
+      className={cn(
+        "bg-card relative overflow-hidden rounded-xl border shadow-sm",
+        className,
+      )}
+    >
       {children}
     </div>
   );

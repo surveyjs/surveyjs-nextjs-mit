@@ -1,18 +1,16 @@
-import {
-  AppWindowIcon,
-  LayoutTemplateIcon,
-  MessageCircleIcon,
-  PanelRightIcon,
-  type LucideIcon,
-} from "lucide-react";
 import type { SurveyData, SurveyJSON } from "@/schemas";
 
 /**
- * The knobs the embedded demo's toolbar offers, kept out of the components so
- * the orchestrator and the toolbar agree on one list.
+ * The few things the embedded demos share, kept out of the components so the
+ * orchestrator and the toolbar agree on one list.
+ *
+ * The toolbar used to carry placements, a palette and a definition switcher. It
+ * doesn't any more: each demo is one site, one survey, one brand colour, sitting
+ * inline in the page the way a real embed does. What's left is the part reviewers
+ * are meant to play with — the JSON, and the user the JSON is rendered for.
  */
 
-/** One survey the demo can drop into the host site. */
+/** One survey a demo drops into its host site. */
 export interface DemoSurvey {
   readonly id: string;
   readonly label: string;
@@ -22,65 +20,31 @@ export interface DemoSurvey {
   readonly prefill: SurveyData;
 }
 
-export type PlacementId = "inline" | "modal" | "drawer" | "bubble";
-
-export interface Placement {
-  readonly id: PlacementId;
-  readonly label: string;
-  readonly hint: string;
-  readonly icon: LucideIcon;
-}
-
-export const PLACEMENTS: readonly Placement[] = [
-  {
-    id: "inline",
-    label: "Inline section",
-    hint: "The survey is part of the page, server-rendered with it.",
-    icon: LayoutTemplateIcon,
-  },
-  {
-    id: "modal",
-    label: "Modal dialog",
-    hint: "Opened from a call to action, centred over the page.",
-    icon: AppWindowIcon,
-  },
-  {
-    id: "drawer",
-    label: "Side drawer",
-    hint: "Slides in from the edge, the page stays visible.",
-    icon: PanelRightIcon,
-  },
-  {
-    id: "bubble",
-    label: "Floating widget",
-    hint: "A launcher in the corner, the way in-app feedback usually arrives.",
-    icon: MessageCircleIcon,
-  },
-];
-
 export interface DemoBrand {
   readonly id: string;
   readonly label: string;
   /** `null` restores the template's own neutral shadcn palette. */
   readonly primary: string | null;
   readonly primaryForeground?: string;
-  /** Colour of the toolbar swatch, needed even when `primary` is null. */
-  readonly swatch: string;
 }
 
+/**
+ * One hue per demo, so three tabs open side by side never look like the same
+ * site twice. The survey has no palette of its own to fight, so it re-skins with
+ * whichever host it lands in.
+ */
 export const BRANDS: readonly DemoBrand[] = [
-  { id: "neutral", label: "Neutral", primary: null, swatch: "oklch(0.3 0 0)" },
-  { id: "indigo", label: "Indigo", primary: "oklch(0.52 0.21 275)", swatch: "oklch(0.52 0.21 275)" },
-  { id: "violet", label: "Violet", primary: "oklch(0.56 0.24 302)", swatch: "oklch(0.56 0.24 302)" },
-  { id: "emerald", label: "Emerald", primary: "oklch(0.55 0.14 163)", swatch: "oklch(0.55 0.14 163)" },
+  { id: "neutral", label: "Neutral", primary: null },
+  { id: "indigo", label: "Indigo", primary: "oklch(0.52 0.21 275)" },
+  { id: "violet", label: "Violet", primary: "oklch(0.56 0.24 302)" },
+  { id: "emerald", label: "Emerald", primary: "oklch(0.55 0.14 163)" },
   {
     id: "amber",
     label: "Amber",
     primary: "oklch(0.75 0.16 66)",
     primaryForeground: "oklch(0.22 0.03 66)",
-    swatch: "oklch(0.75 0.16 66)",
   },
-  { id: "rose", label: "Rose", primary: "oklch(0.59 0.21 16)", swatch: "oklch(0.59 0.21 16)" },
+  { id: "rose", label: "Rose", primary: "oklch(0.59 0.21 16)" },
 ];
 
 export const DEFAULT_BRAND_ID = "indigo";
@@ -98,11 +62,7 @@ const BRAND_FOREGROUND_VAR = "--demo-brand-foreground";
  *
  * Two inline custom properties plus one attribute; the attribute is what lets
  * `globals.css` route `--primary`, `--primary-foreground` and `--ring` at the
- * brand — which is the whole demonstration. The survey has no palette of its
- * own to fight, so it re-skins with the host site in the same frame.
- *
- * The neutral option clears both, and the template's own shadcn palette (light
- * and dark) applies again.
+ * brand — which is why the form matches the site without a line of bespoke CSS.
  */
 export function applyBrand(brand: DemoBrand): void {
   if (typeof document === "undefined") return;

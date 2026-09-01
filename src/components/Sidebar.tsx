@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   ClipboardListIcon,
   CloudIcon,
-  CoffeeIcon,
   HeartPulseIcon,
   MessageSquareIcon,
   ShoppingCartIcon,
@@ -22,7 +21,6 @@ const ICONS: Record<NavId, LucideIcon> = {
   records: TableIcon,
   embeddedFeedback: MessageSquareIcon,
   embeddedCloud: CloudIcon,
-  embeddedShop: CoffeeIcon,
   embeddedClinic: HeartPulseIcon,
 };
 
