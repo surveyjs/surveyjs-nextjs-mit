@@ -15,7 +15,6 @@ import {
 } from "./CadenceSite";
 import { DemoDock } from "./DemoDock";
 import { EmbeddedSurvey, SurveyCard } from "./EmbeddedSurvey";
-import { DemoJsonPanel } from "./DemoJsonPanel";
 import { DemoUserDialog } from "./DemoUserDialog";
 import { useDemoChrome } from "./useDemoChrome";
 import { CADENCE_USER } from "./demo-accounts";
@@ -73,7 +72,6 @@ export function CadenceDemo({ survey }: { survey: DemoSurvey }) {
 
       <SiteFooter />
 
-      <DemoJsonPanel {...chrome.panelProps} />
       <DemoUserDialog {...chrome.userDialogProps} />
       <DemoDock {...chrome.dockProps} />
     </div>

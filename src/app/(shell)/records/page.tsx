@@ -13,6 +13,7 @@ export default async function RecordsPage() {
       <PageHeader
         title={nav.label}
         description={nav.description}
+        configureHref={`/admin?form=${nav.schemaId}`}
       />
       <RecordsView
         schema={getSchemaDefinition(nav.schemaId).json}

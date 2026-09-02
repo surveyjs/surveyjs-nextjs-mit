@@ -60,10 +60,10 @@ export const navItems: readonly NavItem[] = [
   },
   {
     id: "embeddedClinic",
-    label: "Embedded: Family clinic",
-    path: "/embedded/clinic",
+    label: "Family clinic: admin + site",
+    path: "/clinic-admin",
     description:
-      "A US clinic page whose appointment form arrives already filled from the patient's chart.",
+      "Start in the practice's admin portal — patient charts and the appointment form — then open the public site it renders.",
     schemaId: "clinic-visit",
     openInNewTab: true,
   },

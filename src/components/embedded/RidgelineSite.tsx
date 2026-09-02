@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 import {
   ActivityIcon,
   BabyIcon,
@@ -12,10 +14,12 @@ import {
   HeartPulseIcon,
   LanguagesIcon,
   MapPinIcon,
+  MoonIcon,
   PhoneIcon,
   PrinterIcon,
   ShieldCheckIcon,
   StethoscopeIcon,
+  SunIcon,
   TriangleAlertIcon,
   UserRoundIcon,
   VideoIcon,
@@ -60,6 +64,35 @@ const SERVICE_ICONS = [
 
 /* ── chrome ─────────────────────────────────────────────────────────────────── */
 
+/**
+ * Light and dark, where a real site puts it: in its own utility bar.
+ *
+ * It is not a demo control — every visitor expects a site to have one — so it
+ * belongs to the host page rather than to the reviewer's toolbar. The label only
+ * appears once mounted, because the server has no way to know which scheme the
+ * browser will resolve.
+ */
+function SchemeToggle() {
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  const isDark = mounted && resolvedTheme === "dark";
+
+  return (
+    <button
+      type="button"
+      className="hover:text-foreground focus-visible:ring-ring/50 flex items-center gap-1.5 rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+      aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+    >
+      {isDark ? <MoonIcon className="size-3.5" /> : <SunIcon className="size-3.5" />}
+      {isDark ? "Dark" : "Light"}
+    </button>
+  );
+}
+
 export function ClinicUtilityBar() {
   return (
     <div className="bg-muted/50 border-b text-xs">
@@ -76,6 +109,7 @@ export function ClinicUtilityBar() {
           </span>
           <span>Pay my bill</span>
           <span className="text-foreground font-medium">Patient portal</span>
+          <SchemeToggle />
         </span>
       </div>
     </div>

@@ -74,7 +74,10 @@ export const cloudPlatformJson: SurveyJSON = {
   completeText: "See my plan",
   pages: [
     {
-      name: "workload",
+      // Suffixed because a question below owns the bare name: a page and a
+      // question sharing one makes {workload} ambiguous, and the linter reports
+      // it as a duplicate.
+      name: "workloadPage",
       title: "Workload",
       elements: [
         {
@@ -192,7 +195,7 @@ export const cloudPlatformJson: SurveyJSON = {
       ],
     },
     {
-      name: "modules",
+      name: "modulesPage",
       title: "Modules",
       elements: [
         {

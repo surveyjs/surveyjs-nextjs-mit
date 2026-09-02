@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-const CONFIGURE = "/claims/configure";
+const CONFIGURE = "/admin?form=medical-form";
 
 test("the status bar reports a clean schema and expands to the checks", async ({
   page,

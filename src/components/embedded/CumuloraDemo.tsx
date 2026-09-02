@@ -4,7 +4,6 @@ import { useCallback, useMemo, useState } from "react";
 import { quoteFor, type SurveyData } from "@/schemas";
 import { DemoDock } from "./DemoDock";
 import { EmbeddedSurvey, SurveyCard } from "./EmbeddedSurvey";
-import { DemoJsonPanel } from "./DemoJsonPanel";
 import { DemoUserDialog } from "./DemoUserDialog";
 import {
   ComparisonTable,
@@ -126,7 +125,6 @@ export function CumuloraDemo({ survey }: { survey: DemoSurvey }) {
 
       <PricingFooter />
 
-      <DemoJsonPanel {...chrome.panelProps} />
       <DemoUserDialog {...chrome.userDialogProps} />
       <DemoDock {...chrome.dockProps} />
     </div>

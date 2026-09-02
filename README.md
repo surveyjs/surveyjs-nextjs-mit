@@ -42,10 +42,11 @@ Deploy it to the cloud with [Vercel](https://vercel.com/new?utm_source=github&ut
 - **A renderer-agnostic model factory.** [createSurveyModel](src/schemas/createSurveyModel.ts) builds a configured `survey-core` model from a definition, and knows nothing about React — the same call works with any SurveyJS UI package.
 - **Theming with shadcn/ui.** The SurveyJS shadcn adapter (`survey-core/themes/adapters/shadcn-base-nova.css`) maps the form onto the same design tokens the rest of the app uses, so light/dark mode and radius/color changes apply to both at once. App-local tweaks go into [src/styles/](src/styles/).
 - **Edit and read-only modes.** [src/components/RecordsView.tsx](src/components/RecordsView.tsx) lists stored records and reuses the same definition to either display or edit one in a dialog.
-- **Live schema editing.** Each form has a `/configure` page with a Monaco JSON editor and a live preview ([src/components/SchemaEditor.tsx](src/components/SchemaEditor.tsx)). Edits are saved to `localStorage`, so the server keeps rendering the canonical definition and the prerendered HTML stays intact.
+- **One admin for every form.** [`/admin`](src/components/admin/AdminWorkbench.tsx) is the whole template on one screen: a Monaco JSON editor with survey-core’s own linter under it, the list of users the form is rendered for — edited through a SurveyJS form, with the resulting context object shown as JSON — and the form itself, following both as you type. The primary button saves and opens the page the form actually lives in, which for the embedded demos is somebody else’s website. `?form=` makes each one a shareable link, and edits are kept in `localStorage`, so the server keeps rendering the canonical definition and the prerendered HTML stays intact.
+  - The linter is told the one variable the host sets at runtime (`knownVariables: ["user"]`), which is why a personalized definition reads as clean rather than as forty unknown references. Every definition that ships passes it, and an e2e test keeps it that way.
 - **Surveys embedded in somebody else’s site.** Three demos under [`/embedded`](src/app/embedded/), each rendered without the admin chrome (see the `(shell)` route group), each in its own brand colour, and each opened in a new tab from the sidebar. One host site, one form, sitting inline in the page the way a real embed does.
 
-  They share one toolbar, and it is deliberately down to two claims. **The form is JSON:** *Configure JSON live* opens the definition over the running page, and the form follows as you type. **The form is rendered for a person:** *Edit the user* opens the signed-in account in a popup — and that editor is itself a SurveyJS survey, with the object it produces shown as JSON underneath it, so the library is editing its own input and there is no bespoke form code anywhere. Every demo passes that object to survey-core as one variable, so the definition reads `{user.firstName}` — in titles, in `defaultValueExpression` to arrive pre-answered, and in `visibleIf` to add or drop whole pages. Change Alex to John and the greeting, the values *and* the number of steps change. A third button, *Highlight SurveyJS Render*, scrolls to the form and outlines the one element it is drawn into, so there is no argument about which part of the page is the host site. See [demo-accounts.ts](src/components/embedded/demo-accounts.ts); the shared machinery is [useDemoChrome](src/components/embedded/useDemoChrome.ts), so the next demo is a page component and a route.
+  They share one toolbar, and it is deliberately down to two claims. **The form is JSON:** *Configure in admin* opens this form’s definition in `/admin`, and what is saved there is what these pages render — the round trip a buyer is asking about, rather than a second editor bolted onto the host site. **The form is rendered for a person:** a dropdown switches between the users the admin holds, and *Edit the user* opens the signed-in account in a popup — and that editor is itself a SurveyJS survey, with the object it produces shown as JSON underneath it, so the library is editing its own input and there is no bespoke form code anywhere. Every demo passes that object to survey-core as one variable, so the definition reads `{user.firstName}` — in titles, in `defaultValueExpression` to arrive pre-answered, and in `visibleIf` to add or drop whole pages. Change Alex to John and the greeting, the values *and* the number of steps change. A third button, *Highlight SurveyJS Render*, scrolls to the form and outlines the one element it is drawn into, so there is no argument about which part of the page is the host site. See [demo-accounts.ts](src/components/embedded/demo-accounts.ts); the shared machinery is [useDemoChrome](src/components/embedded/useDemoChrome.ts), so the next demo is a page component and a route.
   - `/embedded/feedback` — a mock product marketing site whose hero holds a satisfaction survey, addressed to the workspace member who is signed in. It greets them by name, works out how long they have been a customer from `monthsActive` rather than asking, gives a paying customer a question about plan fit and a three-week-old account a whole onboarding page instead, quotes their open support ticket by subject, names their CSM if they have one, and never asks for an email address it already has.
   - `/embedded/cloud` — a pricing page the survey **drives**. Answers leave the model through `onDataChange`, [quoteFor](src/schemas/cloud-platform-pricing.ts) turns them into an itemised quote, and the page re-prices itself: the quote panel, the recommended tier card, the module grid and the highlighted column of the comparison table. "See my plan" scrolls to the tier rather than showing a thank-you screen, and the built-in preview step (`showPreviewBeforeComplete`) plus a remount-with-the-same-answers "Change my answers" mean nothing is lost when a visitor reconsiders. On top of that it opens on the CRM record: the project count is sized from the company’s headcount, the compliance boxes come from the account, an existing customer is asked what they are changing while a prospect is asked how far along they are, HIPAA on file adds a BAA question, and an EU account gets an entire data-residency page a US one never sees. Worth trying: prefill it, then switch account — the price moves and so does the length of the progress bar.
   - `/embedded/clinic` — a mock US primary-care site, built to the conventions a patient reads without noticing: the utility bar, a provider directory with credentials, in-network plans, posted self-pay prices, the statutory notices. Its appointment request answers the question patients actually ask — [visitSummaryFor](src/schemas/clinic-info.ts) derives the copay from the plan and the visit type, flags an HMO referral, and builds the what-to-bring list; submitting scrolls to the clinician who will see them. And because a patient portal knows more about you than any other login you have, it is the sharpest of the three on personalisation: the office, the clinician, the plan, the name and the date of birth all arrive filled in, the identity fields stay locked until the patient says something has changed, the insurance-card fields are not there at all while a card is on file, “is this about something we already treat you for?” offers *that patient’s* conditions and the refill question *that patient’s* medications — both assembled choice by choice from the chart — and a first-time visitor gets an extra page nobody else sees.
@@ -53,12 +54,13 @@ Deploy it to the cloud with [Vercel](https://vercel.com/new?utm_source=github&ut
 
 ## Storage: `localStorage` here, your database in production
 
-Everything this template stores goes through **two files in [src/storage/](src/storage/)**. Nothing else in `src/` reads or writes stored data.
+Everything this template stores goes through **[src/storage/](src/storage/)**. Nothing else in `src/` reads or writes stored data.
 
 | File | What it stores | How the demo does it |
 | --- | --- | --- |
-| [survey-json.ts](src/storage/survey-json.ts) | Survey definitions edited on the `/configure` pages | `localStorage`, so each visitor's experiments stay in their own browser and the server keeps rendering the definition that ships with the template |
+| [survey-json.ts](src/storage/survey-json.ts) | Survey definitions edited in `/admin` | `localStorage`, so each visitor's experiments stay in their own browser and the server keeps rendering the definition that ships with the template |
 | [survey-results.ts](src/storage/survey-results.ts) | Submitted answers and the claim records | An in-memory array — an edit is gone as soon as you reload. Nothing is persisted, on purpose: a template should not look like it stores someone's data when it does not |
+| [demo-users.ts](src/storage/demo-users.ts) | The users the admin keeps for the personalized demos | `localStorage`. **Delete this file in a real application:** the "user" there is whatever `getSession()` and your CRM already return, and there is exactly one of them — the person looking at the page. It exists because a demo has no session |
 
 Every function in both files is `async`, so replacing the bodies with calls to your API changes no call site anywhere else.
 
@@ -84,7 +86,7 @@ The folder holds four different kinds of thing, and only the first moves into th
 | `index.ts` | Stays, smaller. `getSchemaDefinition` becomes the fallback path rather than the source of truth, since definitions now come from `loadSurveyJson`. |
 | `navigation.ts` | **Stays** if your set of forms is fixed. If users create forms at runtime, this moves to the database too and the routes become a single dynamic `/[formId]`. |
 
-One matching change in the pages: `/configure` currently passes `getSchemaDefinition(id).json` as `defaultSource`, and the form pages pass it as `schema`. Both become `(await loadSurveyJson(id)) ?? getSchemaDefinition(id).json`.
+One matching change in the pages: the admin currently takes `getSchemaDefinition(id).json` from [admin-forms.ts](src/components/admin/admin-forms.ts), and the form pages pass it as `schema`. Both become `(await loadSurveyJson(id)) ?? getSchemaDefinition(id).json`.
 
 ## Pages
 
@@ -97,7 +99,8 @@ One matching change in the pages: `/configure` currently passes `getSchemaDefini
 | `/embedded/feedback` | Embedded demo — a mock product site whose hero hosts a satisfaction survey, rendered for the signed-in account. |
 | `/embedded/cloud` | Embedded demo — a pricing page that re-prices itself from a platform configurator, opened on what the CRM already knows. |
 | `/embedded/clinic` | Embedded demo — a US clinic site whose appointment request arrives filled in from the patient’s chart, estimates the copay and flags a needed referral. |
-| `/claims/configure`, `/checkout/configure`, `/records/configure` | JSON editor with a live preview of the form. |
+| `/admin` | The one editor: JSON plus linter, the users the form is rendered for, and a live form. `?form=` picks which of the six. |
+| `/claims/configure`, `/checkout/configure`, `/records/configure` | Redirect to `/admin`, where that form is now edited. |
 
 ## Project structure
 
@@ -123,21 +126,24 @@ src/
     navigation.ts               Route ↔ schema mapping used by the sidebar
   components/
     SurveyForm.tsx              Renders a model with survey-react-ui
-    SchemaEditor.tsx            JSON editor page with a live preview
     JsonEditor.tsx              Monaco wrapper (client-only)
     RecordsView.tsx             Records table + view/edit dialog
     AdminShell.tsx, Sidebar.tsx, ThemeSwitcher.tsx
+    admin/                      The one editor: JSON + linter, users, live form
+      admin-forms.ts            Every form in the template, in one list
+    lint/                       survey-core’s linter as a status bar
     embedded/                   The mock host sites, the shared toolbar, and the demo accounts
     ui/                         shadcn/ui primitives
-  storage/                      The only two files that touch stored data
+  storage/                      The only files that touch stored data
     survey-json.ts              Survey definitions
     survey-results.ts           Submitted answers and claim records
+    demo-users.ts               The demo accounts the admin keeps (delete in a real app)
   lib/
     utils.ts                    The shadcn `cn()` helper
   styles/                       App-local overrides on top of the SurveyJS adapter
 ```
 
-To add a form, drop a JSON definition into `src/schemas/`, register it in [src/schemas/index.ts](src/schemas/index.ts), add an entry to [src/schemas/navigation.ts](src/schemas/navigation.ts), and create a page that passes it to `SurveyForm`.
+To add a form, drop a JSON definition into `src/schemas/`, register it in [src/schemas/index.ts](src/schemas/index.ts), add an entry to [src/schemas/navigation.ts](src/schemas/navigation.ts) and one to [src/components/admin/admin-forms.ts](src/components/admin/admin-forms.ts) so the admin can edit it, and create a page that passes it to `SurveyForm`.
 
 ## Tests
 

@@ -54,7 +54,8 @@ function Brand() {
 export function AdminShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
-  const isWide = pathname.endsWith("/configure");
+  // The admin is three columns wide; the rest of the shell reads better centred.
+  const isWide = pathname === "/admin";
 
   return (
     <div className="bg-background text-foreground flex h-svh min-h-svh flex-col">

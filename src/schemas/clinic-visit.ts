@@ -406,7 +406,9 @@ export const clinicVisitJson: SurveyJSON = {
       ],
     },
     {
-      name: "coverage",
+      // Not "coverage": the question below owns that name, and a page sharing it
+      // makes {coverage} ambiguous — survey-core's linter reports it as a duplicate.
+      name: "coveragePage",
       title: "Coverage",
       elements: [
         {

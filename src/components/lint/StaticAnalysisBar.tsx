@@ -97,6 +97,7 @@ export function StaticAnalysisBar({
   onApplyJson,
   selectedPath,
   onSelectPath,
+  knownVariables,
 }: {
   /** The JSON source as typed, used to turn a finding's path into a line number. */
   text: string;
@@ -107,6 +108,12 @@ export function StaticAnalysisBar({
   onApplyJson: (json: Record<string, unknown>) => void;
   selectedPath: string | null;
   onSelectPath: (path: string | null) => void;
+  /**
+   * Variables the host sets at runtime with `setVariable`, so the linter does not
+   * report them as unknown references. The personalized forms are rendered for
+   * one variable, `user`, which no amount of reading the JSON could reveal.
+   */
+  knownVariables?: readonly string[];
 }) {
   const [analysis, setAnalysis] = useState<Analysis>({ kind: "waiting" });
   const [expanded, setExpanded] = useState(false);
@@ -121,7 +128,10 @@ export function StaticAnalysisBar({
     }
     const timer = setTimeout(() => {
       const startedAt = performance.now();
-      const result = lintSurvey(json);
+      const result = lintSurvey(
+        json,
+        knownVariables ? { knownVariables: [...knownVariables] } : undefined,
+      );
       const durationMs = performance.now() - startedAt;
       const index = buildPathIndex(text);
       setAnalysis({
@@ -136,7 +146,7 @@ export function StaticAnalysisBar({
       });
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [json, text]);
+  }, [json, knownVariables, text]);
 
   const markers = useMemo<readonly LintMarker[]>(() => {
     if (analysis.kind !== "done") return [];

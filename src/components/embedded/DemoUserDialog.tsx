@@ -54,6 +54,7 @@ export function DemoUserDialog({
   account,
   edited,
   onRevert,
+  adminHref,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -68,6 +69,8 @@ export function DemoUserDialog({
   account: Record<string, unknown>;
   edited: boolean;
   onRevert: () => void;
+  /** Where more users are added, and where they are kept. */
+  adminHref: string;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
@@ -105,7 +108,11 @@ export function DemoUserDialog({
 
         <div className="flex items-center justify-between gap-3 border-t p-3">
           <p className="text-muted-foreground text-xs">
-            {edited ? "Edited in this window only — nothing is saved." : "Unchanged from the template."}
+            {edited ? "Edited in this window only." : "Unchanged from the template."}{" "}
+            <a href={adminHref} className="hover:text-foreground underline decoration-dotted">
+              Users are kept in the admin
+            </a>
+            .
           </p>
           <Button
             variant="outline"

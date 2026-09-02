@@ -1,10 +1,9 @@
 import {
-  CHART_CONDITIONS,
-  CHART_MEDICATIONS,
-  CLINIC_LOCATIONS,
+  CLINIC_PATIENTS,
   COMPLIANCE_ADDONS,
   HEALTH_PLANS,
-  PROVIDERS,
+  PATIENT_LANGUAGES,
+  patientRecordJson,
   type SurveyData,
   type SurveyJSON,
 } from "@/schemas";
@@ -309,194 +308,30 @@ export const CUMULORA_USER: DemoUser = {
 
 /* ── the patient portal record (clinic demo) ────────────────────────────────── */
 
-const CLINIC_LANGUAGES: readonly Choice[] = [
-  { value: "en", text: "English" },
-  { value: "es", text: "Spanish" },
-  { value: "vi", text: "Vietnamese" },
-  { value: "ru", text: "Russian" },
-  { value: "zh", text: "Mandarin" },
-];
-
 /**
  * An established patient: identity and coverage on file, two conditions on the
  * chart, a refill due.
  *
- * The one switch worth throwing in front of an audience is the first: a
- * first-time patient has no chart, so the editor's whole "on file" panel goes
- * away — and because the editor sets `clearInvisibleValues: "onHiddenContainer"`,
- * the values go with it. The account empties, and the appointment form on the page
- * behind turns from four confirmations into the long version, insurance-card
- * fields and all.
+ * The record itself — and the survey that edits it — lives in
+ * `src/schemas/patient-record.ts`, because it is the clinic back office that owns
+ * it, not this demo. All that belongs here is the translation from the stored
+ * answers to the object the appointment form reads as `{user.…}`: the display
+ * labels a dropdown value cannot carry.
  *
- * Smaller ones: the plan (a $35 HMO copay becomes a $20 Medicare one and the
- * referral warning goes), the conditions (which diagnoses the follow-up question
- * offers), the medications (which refills), the office and the clinician (which
- * cards light up further down the page).
+ * The lever worth throwing in front of an audience is "First visit to
+ * Ridgeline?": the record has `clearInvisibleValues: "onHiddenContainer"`, so
+ * turning it on empties the chart, and the appointment form on the website turns
+ * from four confirmations into the long version, insurance-card fields and all.
  */
 export const RIDGELINE_USER: DemoUser = {
-  json: {
-    ...EDITOR_BASE,
-    // Hiding the panel drops its answers, so "first visit" really does empty the
-    // chart instead of leaving a plan on a patient we have never seen.
-    clearInvisibleValues: "onHiddenContainer",
-    pages: [
-      {
-        name: "chart",
-        elements: [
-          {
-            type: "html",
-            name: "note",
-            html: "<p>The patient portal record. The appointment form on the page behind reads it as <code>{user.…}</code>.</p>",
-          },
-          {
-            type: "boolean",
-            name: "isNewPatient",
-            title: "First visit to Ridgeline?",
-            description: "Turn this on and the chart below goes away with it.",
-            labelTrue: "Yes, nobody on file",
-            labelFalse: "No, an established patient",
-          },
-          {
-            type: "panel",
-            name: "onFile",
-            title: "What we have on file",
-            visibleIf: "{isNewPatient} = false",
-            elements: [
-              { type: "text", name: "firstName", title: "Legal first name" },
-              { type: "text", name: "lastName", title: "Last name", startWithNewLine: false },
-              { type: "text", name: "preferredName", title: "Preferred name" },
-              {
-                type: "text",
-                name: "dateOfBirth",
-                title: "Date of birth",
-                inputType: "date",
-                startWithNewLine: false,
-              },
-              {
-                type: "text",
-                name: "phone",
-                title: "Mobile phone",
-                inputType: "tel",
-                maskType: "pattern",
-                // Without this survey-core stores the digits alone, and the object
-                // shown under the editor would not match what was typed.
-                maskSettings: { pattern: "(999) 999-9999", saveMaskedValue: true },
-              },
-              {
-                type: "text",
-                name: "email",
-                title: "Email",
-                inputType: "email",
-                startWithNewLine: false,
-              },
-              { type: "text", name: "mrn", title: "Medical record number" },
-              { type: "text", name: "lastVisit", title: "Last seen", startWithNewLine: false },
-              {
-                type: "dropdown",
-                name: "homeLocation",
-                title: "Usual office",
-                choices: CLINIC_LOCATIONS.map((location) => ({
-                  value: location.id,
-                  text: location.name,
-                })),
-              },
-              {
-                type: "dropdown",
-                name: "primaryProvider",
-                title: "Primary clinician",
-                startWithNewLine: false,
-                choices: PROVIDERS.map((provider) => ({
-                  value: provider.id,
-                  text: `${provider.name}, ${provider.credential}`,
-                })),
-              },
-              {
-                type: "dropdown",
-                name: "healthPlanOnFile",
-                title: "Plan on file",
-                choices: HEALTH_PLANS.map((plan) => ({ value: plan.id, text: plan.name })),
-              },
-              {
-                type: "text",
-                name: "memberIdOnFile",
-                title: "Member ID",
-                description: "Blank means we have no card, and the form asks for one.",
-                startWithNewLine: false,
-              },
-              { type: "text", name: "groupNumberOnFile", title: "Group number" },
-              {
-                type: "dropdown",
-                name: "preferredLanguage",
-                title: "Preferred language",
-                startWithNewLine: false,
-                choices: [...CLINIC_LANGUAGES],
-              },
-              {
-                type: "boolean",
-                name: "needsInterpreter",
-                title: "Interpreter on the record?",
-                labelTrue: "Yes",
-                labelFalse: "No",
-              },
-              {
-                type: "checkbox",
-                name: "conditions",
-                title: "Problem list",
-                description: "The follow-up question offers exactly these.",
-                colCount: 2,
-                choices: CHART_CONDITIONS.map((condition) => ({
-                  value: condition.id,
-                  text: condition.label,
-                })),
-              },
-              {
-                type: "checkbox",
-                name: "medications",
-                title: "Current medications",
-                colCount: 2,
-                choices: CHART_MEDICATIONS.map((medication) => ({
-                  value: medication.id,
-                  text: medication.label,
-                })),
-              },
-              {
-                type: "boolean",
-                name: "openRefills",
-                title: "Refills available?",
-                labelTrue: "Yes",
-                labelFalse: "No",
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  defaults: {
-    firstName: "Maria",
-    lastName: "Delgado",
-    preferredName: "Maria",
-    dateOfBirth: "1984-03-12",
-    email: "maria.delgado@example.com",
-    phone: "(503) 555-0148",
-    mrn: "RFH-04812",
-    isNewPatient: false,
-    lastVisit: "18 April 2026",
-    homeLocation: "westbridge",
-    primaryProvider: "navarro",
-    preferredLanguage: "es",
-    needsInterpreter: true,
-    healthPlanOnFile: "blueharbor",
-    memberIdOnFile: "BH-88213041",
-    groupNumberOnFile: "NW-4471",
-    conditions: ["asthma", "hypertension"],
-    medications: ["albuterol", "lisinopril"],
-    openRefills: true,
-  },
+  json: patientRecordJson,
+  defaults: CLINIC_PATIENTS[0].data,
   toAccount: (data) => ({
     ...data,
     languageLabel:
-      data.preferredLanguage === "en" ? "" : labelOf(CLINIC_LANGUAGES, data.preferredLanguage),
+      data.preferredLanguage === "en"
+        ? ""
+        : labelOf([...PATIENT_LANGUAGES], data.preferredLanguage),
     healthPlanLabel:
       HEALTH_PLANS.find((plan) => plan.id === data.healthPlanOnFile)?.name ?? "",
   }),

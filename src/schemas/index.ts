@@ -12,6 +12,11 @@ export {
 export { insuranceClaimJson, insuranceClaimSchema } from "./insurance-claim";
 export { planFinderJson, planFinderSchema } from "./plan-finder";
 export { medicalFormJson, medicalFormSchema } from "./medical-form";
+export {
+  patientRecordJson,
+  CLINIC_PATIENTS,
+  PATIENT_LANGUAGES,
+} from "./patient-record";
 
 export { medicalFormSample } from "./data/medical-form-seed";
 export { checkoutSample } from "./data/checkout-seed";

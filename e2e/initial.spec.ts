@@ -11,9 +11,9 @@ const allRoutes = [
   "/",
   ...surveyRoutes,
   "/records",
-  "/claims/configure",
-  "/checkout/configure",
-  "/records/configure",
+  // The one editor, on a plain form and on a personalized one.
+  "/admin",
+  "/admin?form=clinic-visit",
 ];
 
 test("root redirects to the first survey", async ({ page }) => {
@@ -92,7 +92,7 @@ test("an edited JSON is kept in the browser and survives a reload", async ({
     }
   });
 
-  await page.goto("/claims/configure");
+  await page.goto("/admin?form=medical-form");
   // Monaco is a heavy dynamic import; under parallel workers it needs longer
   // than the default expect timeout.
   await expect(page.locator(".monaco-editor").first()).toBeVisible({
@@ -128,7 +128,7 @@ test("an edited JSON is kept in the browser and survives a reload", async ({
   expect(serverHtml).toContain("Patient Intake");
   await expect(page.getByText("A brand new question")).toBeVisible();
 
-  await page.goto("/claims/configure");
+  await page.goto("/admin?form=medical-form");
   // Reset is disabled in the server markup and only enables once the saved
   // definition has been read, which happens after hydration.
   await expect(page.locator(".monaco-editor").first()).toBeVisible({
@@ -261,23 +261,21 @@ test("/embedded/feedback renders the same definition differently per user", asyn
   await expect(page.locator("header").first()).toContainText("John Rivera");
 });
 
-test("the toolbar opens the definition and the user separately", async ({ page }) => {
+test("the demo toolbar sends the definition to the admin", async ({ page }) => {
   await page.goto("/embedded/feedback");
   const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
 
-  await dock.getByRole("button", { name: "Configure JSON live" }).click();
-  const panel = page.getByRole("complementary", { name: "Live JSON" });
-  // Monaco is a heavy dynamic import; under parallel workers it needs longer
-  // than the default expect timeout.
-  await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 30_000 });
-  // The wired-keys line is computed from the definition on screen, not a list.
-  await expect(panel).toContainText("firstName");
-  await expect(panel).toContainText("monthsActive");
+  // No editor in the host page any more: the form is configured in the admin,
+  // and this link is how a reviewer gets there and back.
+  await expect(dock.getByRole("link", { name: "Configure in admin" })).toHaveAttribute(
+    "href",
+    "/admin?form=customer-satisfaction",
+  );
 
-  // The user lives in its own popup, and the two are usable at the same time.
+  // The user, on the other hand, is right here — one popup, one survey.
   const dialog = await openUserDialog(page);
   await expect(dialog).toContainText("The signed-in user");
-  await expect(panel).toBeVisible();
+  await expect(dialog).toContainText("Users are kept in the admin");
 });
 
 test("the demo toolbar links home and can outline the survey", async ({ page }) => {

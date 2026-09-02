@@ -2,31 +2,35 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SurveyData, SurveyJSON } from "@/schemas";
+import { loadSurveyJson } from "@/storage/survey-json";
+import { loadDemoUsers, type DemoUserRecord } from "@/storage/demo-users";
+import { adminHref } from "@/lib/routes";
 import { DEFAULT_BRAND_ID, applyBrand, getBrand, type DemoSurvey } from "./demo-controls";
-import type { DemoUser } from "./demo-accounts";
+import { accountName, type DemoUser } from "./demo-accounts";
 
 /**
  * Everything the embedded demos have in common, minus the page itself.
  *
  * Each demo is one host site with one form sitting inline in it, in its own brand
- * colour. What a reviewer can change is deliberately narrow, and it is the whole
- * argument:
+ * colour. Two things about that form are worth proving, and neither of them is
+ * done here any more:
  *
- *  1. **the definition** — the form is JSON, and editing the JSON changes the
- *     form on the page while you type;
- *  2. **the user** — "Edit the user" opens the account in a popup, where the
- *     editor is itself a SurveyJS form and the object it produces is shown as
- *     JSON underneath. Editing it moves values *and* structure, because the
- *     definition reads it as `{user.something}`.
+ *  1. **it is a JSON document** — edited in the admin (`/admin`), which the
+ *     toolbar links to. The definition saved there is what these pages render,
+ *     so a reviewer sees the round trip rather than a second editor;
+ *  2. **it is rendered for a person** — the toolbar's user popup, whose editor is
+ *     itself a SurveyJS form, and the dropdown next to it when the admin holds
+ *     more than one user. Changing the user moves values *and* structure, because
+ *     the definition reads it as `{user.something}`.
  *
  * Prefill and Reset are there so the pair can be demonstrated on a full form
  * without typing twelve answers first, and "Highlight SurveyJS Render" answers
- * the question every reviewer asks about an embedded demo: which part of this page
- * is actually the form?
+ * the question every reviewer asks about an embedded demo: which part of this
+ * page is actually the form?
  */
 export interface DemoChrome {
   readonly survey: DemoSurvey;
-  /** The definition to render: the shipped one, or whatever the editor holds. */
+  /** The definition to render: the shipped one, or this browser's saved one. */
   readonly json: SurveyJSON;
   /** Answers to load. `undefined` means start empty. */
   readonly seed: SurveyData | undefined;
@@ -51,23 +55,18 @@ export interface DemoChrome {
     onToggleHighlight: () => void;
     onPrefill: () => void;
     onReset: () => void;
-    onEditJson: () => void;
-    onEditUser: () => void;
+    /** Absent when a back office owns the record instead. */
+    onEditUser?: () => void;
+    /** Where this form is maintained, and what the button says. */
+    adminHref: string;
+    adminLabel: string;
+    /** The users the admin keeps for this demo, by display name. */
+    users: readonly { id: string; name: string }[];
+    activeUserId: string;
+    onSelectUser: (id: string) => void;
+    /** The account has been changed in this window — worth a dot. */
     edited: boolean;
-    panelOpen: boolean;
     userOpen: boolean;
-    align: "center" | "left";
-  };
-  readonly panelProps: {
-    open: boolean;
-    onClose: () => void;
-    json: SurveyJSON;
-    surveySource: string;
-    onSurveySourceChange: (source: string) => void;
-    surveyError: string | null;
-    surveyEdited: boolean;
-    onRevertSurvey: () => void;
-    account: Record<string, unknown>;
   };
   readonly userDialogProps: {
     open: boolean;
@@ -79,6 +78,7 @@ export interface DemoChrome {
     account: Record<string, unknown>;
     edited: boolean;
     onRevert: () => void;
+    adminHref: string;
   };
 }
 
@@ -91,7 +91,7 @@ const DEBOUNCE_MS = 400;
  * defaults were written in — comparing raw JSON would report every account as
  * edited the moment the editor mounted.
  */
-function stableJson(value: Record<string, unknown>): string {
+function stableJson(value: SurveyData): string {
   return JSON.stringify(
     Object.keys(value)
       .sort()
@@ -102,25 +102,15 @@ function stableJson(value: Record<string, unknown>): string {
   );
 }
 
-/** Parses an editor's text, rejecting anything that is not a JSON object. */
-function parseObject(source: string): { value: Record<string, unknown> } | { error: string } {
-  try {
-    const parsed = JSON.parse(source);
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      return { error: "This has to be a JSON object." };
-    }
-    return { value: parsed as Record<string, unknown> };
-  } catch (error) {
-    return { error: (error as Error).message };
-  }
-}
-
 export function useDemoChrome({
   survey,
   user,
   /** Element the form lives in, so the demo can scroll back to it. */
   anchorId,
   brandId = DEFAULT_BRAND_ID,
+  roster,
+  admin,
+  allowUserEdit = true,
 }: {
   survey: DemoSurvey;
   /** The visitor, plus the survey used to edit them. */
@@ -128,12 +118,25 @@ export function useDemoChrome({
   anchorId: string;
   /** Palette the demo runs in, so no two host sites look alike. */
   brandId?: string;
+  /**
+   * The people this demo ships with, when it ships with more than one — the
+   * clinic has a roster of patients, and the toolbar lets a reviewer sign in as
+   * any of them.
+   */
+  roster?: readonly DemoUserRecord[];
+  /** The back office this form is maintained in, if it has its own. */
+  admin?: string;
+  /**
+   * Whether the toolbar may edit the account in place. Off where a back office
+   * owns the record: a reviewer on the public site picks who they are, and the
+   * chart is changed by staff.
+   */
+  allowUserEdit?: boolean;
 }): DemoChrome {
   // A fresh seed object remounts the survey model, which is what Prefill and
   // Reset want; `runCount` covers resetting when there was nothing to clear.
   const [seed, setSeed] = useState<SurveyData | undefined>(undefined);
   const [runCount, setRunCount] = useState(0);
-  const [panelOpen, setPanelOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [highlight, setHighlight] = useState(false);
 
@@ -153,62 +156,92 @@ export function useDemoChrome({
     return () => root.removeAttribute("data-demo-highlight");
   }, [highlight]);
 
-  /* ── the definition ──────────────────────────────────────────────────────── */
+  /* ── the definition, as the admin left it ────────────────────────────────── */
 
-  const defaultSurveySource = useMemo(() => JSON.stringify(survey.json, null, 2), [survey.json]);
-  const [surveySource, setSurveySource] = useState(defaultSurveySource);
   const [json, setJson] = useState<SurveyJSON>(survey.json);
-  const [surveyError, setSurveyError] = useState<string | null>(null);
-  const surveyEdited = surveySource !== defaultSurveySource;
-
-  // The text that produced the definition now on screen. Without it the effect
-  // below re-parses on every mount and hands the survey a brand new — but
-  // identical — object, which rebuilds the model and throws the visitor back to
-  // page one 400ms after they started.
-  const appliedSurvey = useRef(defaultSurveySource);
-
-  // Debounced so the survey is rebuilt once a typing pause, not once a keystroke.
-  useEffect(() => {
-    if (surveySource === appliedSurvey.current) return;
-    const timer = setTimeout(() => {
-      const result = parseObject(surveySource);
-      if ("error" in result) {
-        setSurveyError(result.error);
-        return;
-      }
-      appliedSurvey.current = surveySource;
-      setJson(result.value as SurveyJSON);
-      setSurveyError(null);
-    }, DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [surveySource]);
 
   /* ── the user the definition is rendered for ─────────────────────────────── */
 
-  // The editor's answers, and the answers the page is currently rendered from.
-  // Debounced apart for the same reason the JSON editor is: typing a name should
-  // not rebuild the survey model on every keystroke.
-  const [formData, setFormData] = useState<SurveyData>(user.defaults);
-  const [appliedForm, setAppliedForm] = useState<SurveyData>(user.defaults);
-  const [formRun, setFormRun] = useState(0);
-
-  const accountEdited = useMemo(
-    () => stableJson(formData) !== stableJson(user.defaults),
-    [formData, user.defaults],
+  // One record per user, exactly as the admin keeps them: `saved` is what
+  // storage holds, `users` is what this window has since done to it.
+  const defaults = useMemo<readonly DemoUserRecord[]>(
+    () => roster ?? [{ id: "default", data: user.defaults }],
+    [roster, user.defaults],
   );
+  const [saved, setSaved] = useState(defaults);
+  const [users, setUsers] = useState(defaults);
+  const [activeUserId, setActiveUserId] = useState(defaults[0].id);
+
+  // The answers the popup's editor opens on, and a counter that remounts it.
+  // Kept apart from `users` because survey-core rebuilds its model whenever
+  // `data` changes identity — feeding the live record back would restart the
+  // editor on every letter typed into it.
+  const editorSeed = useRef<SurveyData>(defaults[0].data);
+  const [editorRun, setEditorRun] = useState(0);
+
+  // The server always renders the definition and the roster that ship with the
+  // template — the prerendered HTML, the one crawlers get, stays canonical — and
+  // whatever this browser saved in the admin arrives a tick after hydration.
+  useEffect(() => {
+    let active = true;
+    void Promise.all([loadSurveyJson(survey.id), loadDemoUsers(survey.id)]).then(
+      ([storedJson, storedUsers]) => {
+        if (!active || (!storedJson && !storedUsers)) return;
+        if (storedUsers) {
+          setSaved(storedUsers);
+          setUsers(storedUsers);
+          setActiveUserId(storedUsers[0].id);
+          editorSeed.current = storedUsers[0].data;
+          setEditorRun((run) => run + 1);
+        }
+        if (storedJson) setJson(storedJson);
+        // A different definition or a different person is a different form, so
+        // the model is rebuilt rather than re-fed.
+        setRunCount((count) => count + 1);
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [survey.id]);
+
+  const activeRecord = users.find((record) => record.id === activeUserId) ?? users[0];
+  const savedRecord = saved.find((record) => record.id === activeUserId);
+
+  // The answers the page is currently rendered from. Debounced away from the
+  // editor's own state for the same reason the JSON editor was: typing a name
+  // should not rebuild the survey model on every keystroke.
+  const [appliedForm, setAppliedForm] = useState<SurveyData>(activeRecord.data);
 
   useEffect(() => {
-    if (formData === appliedForm) return;
+    if (activeRecord.data === appliedForm) return;
     const timer = setTimeout(() => {
-      setAppliedForm(formData);
+      setAppliedForm(activeRecord.data);
       // A different user is a different form, so the model is rebuilt rather
       // than re-fed — `runKey` remounts it.
       setRunCount((count) => count + 1);
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [formData, appliedForm]);
+  }, [activeRecord.data, appliedForm]);
 
   const account = useMemo(() => user.toAccount(appliedForm), [user, appliedForm]);
+  const variables = useMemo(() => ({ user: account }), [account]);
+
+  const accountEdited = useMemo(
+    () =>
+      stableJson(activeRecord.data) !==
+      stableJson(savedRecord?.data ?? defaults[0].data),
+    [activeRecord.data, savedRecord, defaults],
+  );
+
+  const userOptions = useMemo(
+    () =>
+      users.map((record) => ({
+        id: record.id,
+        name: accountName(user.toAccount(record.data)) || "Unnamed user",
+      })),
+    [users, user],
+  );
 
   /* ── actions ─────────────────────────────────────────────────────────────── */
 
@@ -245,22 +278,44 @@ export function useDemoChrome({
     [revealAnchor],
   );
 
-  const revertSurvey = useCallback(() => {
-    setSurveySource(defaultSurveySource);
-    appliedSurvey.current = defaultSurveySource;
-    setJson(survey.json);
-    setSurveyError(null);
-    restart();
-  }, [defaultSurveySource, survey.json, restart]);
+  const selectUser = useCallback(
+    (id: string) => {
+      const record = users.find((item) => item.id === id);
+      if (!record) return;
+      setActiveUserId(id);
+      editorSeed.current = record.data;
+      setEditorRun((run) => run + 1);
+      setAppliedForm(record.data);
+      setRunCount((count) => count + 1);
+    },
+    [users],
+  );
+
+  const changeUserData = useCallback(
+    (data: SurveyData) => {
+      setUsers((current) =>
+        current.map((record) =>
+          record.id === activeUserId ? { ...record, data } : record,
+        ),
+      );
+    },
+    [activeUserId],
+  );
 
   const revertAccount = useCallback(() => {
-    setFormData(user.defaults);
-    setAppliedForm(user.defaults);
-    setFormRun((count) => count + 1);
+    const original = savedRecord?.data ?? defaults[0].data;
+    setUsers((current) =>
+      current.map((record) =>
+        record.id === activeUserId ? { ...record, data: original } : record,
+      ),
+    );
+    editorSeed.current = original;
+    setEditorRun((run) => run + 1);
+    setAppliedForm(original);
     setRunCount((count) => count + 1);
-  }, [user.defaults]);
+  }, [activeUserId, defaults, savedRecord]);
 
-  const variables = useMemo(() => ({ user: account }), [account]);
+  const href = admin ?? adminHref(survey.id);
 
   return {
     survey,
@@ -276,34 +331,26 @@ export function useDemoChrome({
       onToggleHighlight: toggleHighlight,
       onPrefill: prefill,
       onReset: restart,
-      onEditJson: () => setPanelOpen((open) => !open),
-      onEditUser: () => setUserOpen((open) => !open),
-      edited: surveyEdited || accountEdited,
-      panelOpen,
+      onEditUser: allowUserEdit ? () => setUserOpen((open) => !open) : undefined,
+      adminHref: href,
+      adminLabel: admin ? "Go back to admin" : "Configure in admin",
+      users: userOptions,
+      activeUserId: activeRecord.id,
+      onSelectUser: selectUser,
+      edited: accountEdited,
       userOpen,
-      align: panelOpen ? "left" : "center",
-    },
-    panelProps: {
-      open: panelOpen,
-      onClose: () => setPanelOpen(false),
-      json,
-      surveySource,
-      onSurveySourceChange: setSurveySource,
-      surveyError,
-      surveyEdited,
-      onRevertSurvey: revertSurvey,
-      account,
     },
     userDialogProps: {
       open: userOpen,
       onOpenChange: setUserOpen,
       json: user.json,
-      defaults: user.defaults,
-      formKey: `user-${formRun}`,
-      onDataChange: setFormData,
+      defaults: editorSeed.current,
+      formKey: `user-${activeRecord.id}-${editorRun}`,
+      onDataChange: changeUserData,
       account,
       edited: accountEdited,
       onRevert: revertAccount,
+      adminHref: href,
     },
   };
 }

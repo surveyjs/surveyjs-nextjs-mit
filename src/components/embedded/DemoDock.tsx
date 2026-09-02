@@ -3,15 +3,27 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import {
+  ChevronDownIcon,
   Code2Icon,
+  LayersIcon,
   MoonIcon,
   RotateCcwIcon,
   SquareDashedIcon,
   SunIcon,
   UserRoundIcon,
+  UsersRoundIcon,
   WandSparklesIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 /** Where the demos came from — the template's own admin shell. */
@@ -22,11 +34,16 @@ const HOME = "/claims";
  *
  * Every control exists to make a single claim checkable:
  *
+ *  - **the way back to the admin** — the form is a JSON document, and it is
+ *    maintained in a back office rather than in the page it is embedded in. What
+ *    is saved there is what this page renders, which is the round trip a buyer is
+ *    asking about;
  *  - **Prefill / Reset** — so the rest can be shown on a filled form at once;
- *  - **Configure JSON live** — the form is a JSON document, editable over the
- *    running page;
- *  - **Edit the user** — the account the form is rendered for, in a popup whose
- *    editor is itself a SurveyJS survey, with the resulting object shown as JSON;
+ *  - **Login as** — the people the back office keeps. The same definition, a
+ *    different person, and the form changes shape. Nothing is editable here on
+ *    purpose: on the public site a visitor is who they are signed in as. Demos
+ *    without a back office of their own instead get an *Edit the user* popup,
+ *    whose editor is a SurveyJS survey;
  *  - **Highlight SurveyJS Render** — scrolls to the form and outlines it, which
  *    is the first thing anyone asks when a form looks native to its host.
  *
@@ -39,42 +56,48 @@ export function DemoDock({
   onToggleHighlight,
   onPrefill,
   onReset,
-  onEditJson,
   onEditUser,
+  adminHref,
+  adminLabel,
+  users,
+  activeUserId,
+  onSelectUser,
   edited,
-  panelOpen,
   userOpen,
-  align = "center",
+  showTheme = true,
 }: {
   highlight: boolean;
   onToggleHighlight: () => void;
   onPrefill: () => void;
   onReset: () => void;
-  onEditJson: () => void;
-  onEditUser: () => void;
-  /** Either editor holds changes — worth a dot on the button. */
+  /** Absent where a back office owns the record — then the dropdown is all. */
+  onEditUser?: () => void;
+  /** Where this form is maintained, and what the button says. */
+  adminHref: string;
+  adminLabel: string;
+  /** The users the admin keeps for this demo. One is the shipped default. */
+  users: readonly { id: string; name: string }[];
+  activeUserId: string;
+  onSelectUser: (id: string) => void;
+  /** The account has been changed in this window — worth a dot on the button. */
   edited: boolean;
-  panelOpen: boolean;
   userOpen: boolean;
-  /** Steps aside when the editor panel would otherwise cover it. */
-  align?: "center" | "left";
+  /** False where the host site has a colour-scheme control of its own. */
+  showTheme?: boolean;
 }) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
-  const position = align === "left" ? "left-6" : "left-1/2 -translate-x-1/2";
   const isDark = resolvedTheme === "dark";
   const divider = <span className="bg-border mx-0.5 h-5 w-px shrink-0" aria-hidden />;
+  const activeUser = users.find((option) => option.id === activeUserId) ?? users[0];
 
   return (
     <div
       data-demo-dock=""
-      className={cn(
-        "demo-dock bg-background/85 pointer-events-auto fixed bottom-4 z-[70] flex max-w-[calc(100vw-2rem)] items-center gap-1 overflow-x-auto rounded-full border px-2 py-1.5 shadow-lg backdrop-blur",
-        position,
-      )}
+      className="demo-dock bg-background/85 pointer-events-auto fixed bottom-4 left-1/2 z-[70] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-full border px-2 py-1.5 shadow-lg backdrop-blur [scrollbar-width:none]"
       role="toolbar"
       aria-label="Embedded demo tools"
     >
@@ -83,12 +106,29 @@ export function DemoDock({
       <a
         href={HOME}
         className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 flex shrink-0 items-center gap-1.5 rounded-full px-1.5 py-1 text-[11px] font-medium tracking-wide uppercase transition-colors focus-visible:ring-[3px] focus-visible:outline-none"
-        title="Back to the SurveyJS template"
+        title="Back to the SurveyJS demos"
       >
+        <LayersIcon className="size-3.5" />
         SurveyJS demos
       </a>
 
       {divider}
+
+      {/* The one control that is meant to be pressed, so the one control painted
+          in the host brand rather than hidden in the greys. */}
+      <Button
+        asChild
+        size="sm"
+        className="demo-brand-bg text-primary-foreground shrink-0 gap-1.5 rounded-full font-semibold shadow-sm hover:opacity-90"
+      >
+        <a
+          href={adminHref}
+          title="Open the back office this form is maintained in — what is saved there is what this page renders"
+        >
+          <Code2Icon />
+          {adminLabel}
+        </a>
+      </Button>
 
       <Button
         variant="ghost"
@@ -114,37 +154,57 @@ export function DemoDock({
 
       {divider}
 
-      {/* The one control that is meant to be pressed, so it is the one control
-          that is painted in the host brand rather than hidden in the greys. */}
-      <Button
-        size="sm"
-        className={cn(
-          "demo-brand-bg text-primary-foreground shrink-0 gap-1.5 rounded-full font-semibold shadow-sm hover:opacity-90",
-          panelOpen && "ring-ring/60 ring-2 ring-offset-1",
-        )}
-        aria-pressed={panelOpen}
-        title="Edit the form's JSON, or the user it is rendered for — the page follows as you type"
-        onClick={onEditJson}
-      >
-        <Code2Icon />
-        Configure JSON live
-        {edited && (
-          <span className="size-1.5 rounded-full bg-current opacity-70" aria-label="edited" />
-        )}
-      </Button>
+      {/* The picker, once the back office holds more than one person. */}
+      {users.length > 1 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="shrink-0 gap-1.5 rounded-full"
+              title="Sign in as somebody else — the same form, a different person"
+            >
+              <UsersRoundIcon />
+              <span className="hidden max-w-48 truncate sm:inline">
+                Login as: {activeUser?.name}
+              </span>
+              <ChevronDownIcon className="opacity-60" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-56">
+            <DropdownMenuLabel>Login as</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuRadioGroup value={activeUserId} onValueChange={onSelectUser}>
+              {users.map((option) => (
+                <DropdownMenuRadioItem key={option.id} value={option.id}>
+                  {option.name}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
-      <Button
-        variant={userOpen ? "secondary" : "ghost"}
-        size="sm"
-        className={cn("shrink-0 gap-1.5 rounded-full", userOpen && "shadow-inner")}
-        aria-pressed={userOpen}
-        aria-label="Edit the user"
-        title="Change the signed-in user the form is rendered for — the editor is a SurveyJS form too"
-        onClick={onEditUser}
-      >
-        <UserRoundIcon />
-        <span className="hidden sm:inline">Edit the user</span>
-      </Button>
+      {onEditUser && (
+        <Button
+          variant={userOpen ? "secondary" : "ghost"}
+          size="sm"
+          className={cn("shrink-0 gap-1.5 rounded-full", userOpen && "shadow-inner")}
+          aria-pressed={userOpen}
+          aria-label="Edit the user"
+          title="Change the signed-in user the form is rendered for — the editor is a SurveyJS form too"
+          onClick={onEditUser}
+        >
+          <UserRoundIcon />
+          <span className="hidden sm:inline">Edit the user</span>
+          {edited && (
+            <span
+              className="bg-primary size-1.5 rounded-full opacity-70"
+              aria-label="edited"
+            />
+          )}
+        </Button>
+      )}
 
       <Button
         variant={highlight ? "secondary" : "ghost"}
@@ -159,18 +219,25 @@ export function DemoDock({
         <span className="hidden sm:inline">Highlight SurveyJS Render</span>
       </Button>
 
-      {divider}
-
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className="shrink-0 rounded-full"
-        title={mounted ? `Switch to ${isDark ? "light" : "dark"} mode` : "Toggle colour scheme"}
-        onClick={() => setTheme(isDark ? "light" : "dark")}
-      >
-        {mounted && isDark ? <MoonIcon /> : <SunIcon />}
-        <span className="sr-only">Toggle colour scheme</span>
-      </Button>
+      {/* Only where the host site has no control of its own: a colour scheme is
+          the page's business, not the survey's. */}
+      {showTheme && (
+        <>
+          {divider}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0 rounded-full"
+            title={
+              mounted ? `Switch to ${isDark ? "light" : "dark"} mode` : "Toggle colour scheme"
+            }
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+          >
+            {mounted && isDark ? <MoonIcon /> : <SunIcon />}
+            <span className="sr-only">Toggle colour scheme</span>
+          </Button>
+        </>
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   HeartPulseIcon,
   MessageSquareIcon,
   ShoppingCartIcon,
+  SlidersHorizontalIcon,
   SquareArrowOutUpRightIcon,
   TableIcon,
   type LucideIcon,
@@ -56,9 +57,41 @@ function ItemBody({ item, active }: { item: NavItem; active: boolean }) {
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const adminActive = isActiveRoute(pathname, "/admin");
 
   return (
     <nav aria-label="Primary" className="flex flex-col gap-1 p-3">
+      {/* First, because it is the page worth sharing: every form below is edited
+          here, and this is where the user each one is rendered for is kept. */}
+      <Link
+        href="/admin"
+        onClick={onNavigate}
+        aria-current={adminActive ? "page" : undefined}
+        className={cn(
+          ITEM_CLASS,
+          adminActive
+            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+            : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+        )}
+      >
+        <SlidersHorizontalIcon
+          className={cn(
+            "mt-0.5 size-4 shrink-0",
+            adminActive
+              ? "text-sidebar-accent-foreground"
+              : "text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground",
+          )}
+        />
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span>Survey admin</span>
+          <span className="text-muted-foreground text-xs leading-tight">
+            Edit any form as JSON, pick the user, preview the result.
+          </span>
+        </span>
+      </Link>
+
+      <span className="bg-sidebar-border my-1.5 h-px shrink-0" aria-hidden />
+
       {navItems.map((item) => {
         const active = !item.openInNewTab && isActiveRoute(pathname, item.path);
 
