@@ -114,13 +114,7 @@ export function DemoDock({
 
       {divider}
 
-      {/* The one control that is meant to be pressed, so the one control painted
-          in the host brand rather than hidden in the greys. */}
-      <Button
-        asChild
-        size="sm"
-        className="demo-brand-bg text-primary-foreground shrink-0 gap-1.5 rounded-full font-semibold shadow-sm hover:opacity-90"
-      >
+      <Button asChild variant="ghost" size="sm" className="shrink-0 gap-1.5 rounded-full">
         <a
           href={adminHref}
           title="Open the back office this form is maintained in — what is saved there is what this page renders"
@@ -158,10 +152,11 @@ export function DemoDock({
       {users.length > 1 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
+            {/* The one control meant to be pressed, so the one painted in the
+                host brand rather than hidden in the greys. */}
             <Button
-              variant="ghost"
               size="sm"
-              className="shrink-0 gap-1.5 rounded-full"
+              className="demo-brand-bg text-primary-foreground shrink-0 gap-1.5 rounded-full font-semibold shadow-sm hover:opacity-90"
               title="Sign in as somebody else — the same form, a different person"
             >
               <UsersRoundIcon />
