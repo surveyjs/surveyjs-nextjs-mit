@@ -69,7 +69,7 @@ test("a definition saved here is what the embedded site renders", async ({ page 
     timeout: 15_000,
   });
 
-  await page.getByRole("button", { name: "Preview result" }).click();
+  await page.getByRole("button", { name: "View Result" }).click();
   await expect(page).toHaveURL(/\/embedded\/clinic$/);
 
   // The host site is untouched — it is the survey inside it that came from the
@@ -101,7 +101,7 @@ for (const id of [
   "checkout",
   "insurance-claim",
   "customer-satisfaction",
-  "cloud-platform",
+  "encounter-note",
   "clinic-visit",
 ]) {
   test(`the ${id} definition passes static analysis`, async ({ page }) => {

@@ -1,7 +1,7 @@
 import {
   clinicVisitSample,
-  cloudPlatformSample,
   customerSatisfactionSample,
+  encounterNoteSample,
   getSchemaDefinition,
 } from "@/schemas";
 import type { DemoSurvey } from "./demo-controls";
@@ -21,12 +21,12 @@ export const DEMO_SURVEYS: Record<string, DemoSurvey> = {
     json: getSchemaDefinition("customer-satisfaction").json,
     prefill: customerSatisfactionSample,
   },
-  cloudPlatform: {
-    id: "cloud-platform",
-    label: "Platform configurator",
-    hint: "Prices a platform from the answers, opening on the account's own numbers.",
-    json: getSchemaDefinition("cloud-platform").json,
-    prefill: cloudPlatformSample,
+  encounterNote: {
+    id: "encounter-note",
+    label: "Encounter note",
+    hint: "The whole clinician workspace: eight pages, totals, scores and a signature.",
+    json: getSchemaDefinition("encounter-note").json,
+    prefill: encounterNoteSample,
   },
   clinicVisit: {
     id: "clinic-visit",

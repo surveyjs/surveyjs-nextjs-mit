@@ -4,7 +4,7 @@ const surveyRoutes = [
   "/claims",
   "/checkout",
   "/embedded/feedback",
-  "/embedded/cloud",
+  "/embedded/chart",
   "/embedded/clinic",
 ];
 const allRoutes = [
@@ -33,40 +33,49 @@ for (const route of surveyRoutes) {
   });
 }
 
-test("/embedded/cloud re-prices the page as the configurator is answered", async ({
-  page,
-}) => {
-  await page.goto("/embedded/cloud");
+test("/embedded/chart is the survey and almost nothing else", async ({ page }) => {
+  test.slow();
+  await page.goto("/embedded/chart");
+  const card = page.locator("[data-survey-root]");
+
+  // The note is titled, banner and all, from the chart that is open.
+  await expect(card).toContainText("Delgado, Maria");
+  await expect(card).toContainText("RFH-04812");
+
+  // Eight pages, listed by the survey's own table of contents — not by the page.
+  const toc = card.getByText("Medications", { exact: true }).first();
+  await expect(toc).toBeVisible();
+  await expect(card.getByText("Assessment & plan", { exact: true }).first()).toBeVisible();
+
+  // An established patient has no new-patient page.
+  await expect(card.getByText("New-patient baseline")).toHaveCount(0);
+
+  // A red flag in the prefilled answers escalates the visit — by trigger, and
+  // the question it writes to did not exist a moment ago.
+  await page
+    .getByRole("toolbar", { name: "Embedded demo tools" })
+    .getByRole("button", { name: "Prefill" })
+    .click();
+  await expect(card.getByText("Escalate to same-day evaluation")).toBeVisible({
+    timeout: 15_000,
+  });
+});
+
+test("opening another chart changes the note's shape", async ({ page }) => {
+  test.slow();
+  await page.goto("/embedded/chart");
   const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
-  const quote = page.getByRole("complementary", { name: "Your quote" });
+  const card = page.locator("[data-survey-root]");
 
-  // Nothing answered: the page has no quote to show yet.
-  await expect(quote).toContainText("Answer the first question");
+  await dock.getByRole("button", { name: /Open chart/ }).click();
+  await page.getByRole("menuitemradio", { name: "Priya Raman" }).click();
 
-  await dock.getByRole("button", { name: "Prefill" }).click();
-
-  // 25 projects and SSO put the tier at Business; the modules, the three
-  // environments and SOC 2 each add their own line. That the page shows them at
-  // all is the point of the demo: the survey model is driving it.
-  await expect(quote).toContainText("Business");
-  await expect(quote).toContainText("Streams module");
-  await expect(quote).toContainText("Warehouse module");
-  await expect(quote).toContainText("3 environments");
-  await expect(quote).toContainText("SOC 2 Type II report");
-
-  // Business's 2 TB allowance exactly covers the prefilled volume.
-  await expect(quote).not.toContainText("Storage over the allowance");
-
-  // 1200 + 180 + 340 + (520 + 180 + 60) + 400 support + 250 SOC 2
-  await expect(quote).toContainText("$3,130");
-
-  // The recommended tier is badged in the plan cards, and only that one.
-  const recommended = page.locator("#plan-business");
-  await expect(recommended).toContainText("Recommended for you");
-  await expect(page.locator("#plan-team")).not.toContainText("Recommended for you");
-
-  // The module grid marks what the quote contains.
-  await expect(page.getByText("In your quote")).toHaveCount(2);
+  // Priya has never been seen here, so a page exists for her and for nobody
+  // else — the same definition, a longer note.
+  await expect(card).toContainText("Raman, Priya");
+  await expect(card.getByText("New-patient baseline").first()).toBeVisible({
+    timeout: 15_000,
+  });
 });
 
 test("/records renders the table and the SurveyJS editor", async ({ page }) => {
@@ -303,7 +312,7 @@ test("Login as renders the same definition for a different customer", async ({ p
 });
 
 test("the demo links home and outlines where SurveyJS draws", async ({ page }) => {
-  await page.goto("/embedded/cloud");
+  await page.goto("/embedded/chart");
   const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
 
   await expect(dock.getByRole("link", { name: "SurveyJS demos" })).toHaveAttribute(

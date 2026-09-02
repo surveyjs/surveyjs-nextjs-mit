@@ -60,6 +60,8 @@ export function DemoDock({
   edited,
   userOpen,
   showTheme = true,
+  usersLabel = "Login as",
+  editLabel = "Edit the user",
 }: {
   onPrefill: () => void;
   onReset: () => void;
@@ -75,6 +77,12 @@ export function DemoDock({
   userOpen: boolean;
   /** False where the host site has a colour-scheme control of its own. */
   showTheme?: boolean;
+  /**
+   * What signing in as somebody means on this site. "Login as" is right for a
+   * product; the clinician's workspace opens a patient's chart instead.
+   */
+  usersLabel?: string;
+  editLabel?: string;
 }) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -145,9 +153,11 @@ export function DemoDock({
 
       {divider}
 
-      {/* The picker, once the back office holds more than one person. */}
+      {/* The picker, once the back office holds more than one person.
+          `modal={false}`: a modal dropdown locks the page scroll, and taking the
+          scrollbar away shifts this centred, fixed toolbar sideways. */}
       {users.length > 1 && (
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
@@ -157,13 +167,13 @@ export function DemoDock({
             >
               <UsersRoundIcon />
               <span className="hidden max-w-48 truncate sm:inline">
-                Login as: {activeUser?.name}
+                {usersLabel}: {activeUser?.name}
               </span>
               <ChevronDownIcon className="opacity-60" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-56">
-            <DropdownMenuLabel>Login as</DropdownMenuLabel>
+            <DropdownMenuLabel>{usersLabel}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuRadioGroup value={activeUserId} onValueChange={onSelectUser}>
               {users.map((option) => (
@@ -181,12 +191,12 @@ export function DemoDock({
           size="sm"
           className={cn("shrink-0 gap-1.5 rounded-full", userOpen && "shadow-inner")}
           aria-pressed={userOpen}
-          aria-label="Edit the user"
+          aria-label={editLabel}
           title="Change the signed-in user the form is rendered for — the editor is a SurveyJS form too"
           onClick={onEditUser}
         >
           <UserRoundIcon />
-          <span className="hidden sm:inline">Edit the user</span>
+          <span className="hidden sm:inline">{editLabel}</span>
           {edited && (
             <span
               className="bg-primary size-1.5 rounded-full opacity-70"

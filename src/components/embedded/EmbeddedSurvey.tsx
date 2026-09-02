@@ -81,12 +81,23 @@ export function EmbeddedSurvey({
   return <Survey model={model} />;
 }
 
+/** Drops the outline for the rest of the visit — see `SurveyCard` below. */
+function hideOutline() {
+  document.documentElement.removeAttribute("data-demo-highlight");
+}
+
 /**
  * The container a host page puts a form in — a plain shadcn card.
  *
  * `data-survey-root` marks the boundary of what SurveyJS draws, which is what the
  * always-on outline is keyed off. Nothing else on these pages carries the
  * attribute: everything outside it is the mock site's own markup.
+ *
+ * The corner label is part of that outline and part of the argument: it says
+ * which element the library drew, and pressing it takes the whole ring away, so
+ * the page can be looked at as a visitor would see it without hunting for a
+ * control in the toolbar. Both it and the ring are styled in `globals.css`,
+ * keyed off the attribute an embedded demo sets on `<html>`.
  */
 export function SurveyCard({
   className,
@@ -103,6 +114,14 @@ export function SurveyCard({
         className,
       )}
     >
+      <button
+        type="button"
+        data-survey-outline-label=""
+        title="Hide the outline and look at the page as a visitor would"
+        onClick={hideOutline}
+      >
+        SurveyJS renders this (hide selection)
+      </button>
       {children}
     </div>
   );

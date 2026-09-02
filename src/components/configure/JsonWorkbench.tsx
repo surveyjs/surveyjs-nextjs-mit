@@ -231,6 +231,7 @@ function FormWorkbench({ form }: { form: FormEntry }) {
               <span className="hidden sm:inline">Back</span>
             </a>
           </Button>
+          <ThemeSwitcher />
           <Button
             variant="outline"
             size="sm"
@@ -260,7 +261,6 @@ function FormWorkbench({ form }: { form: FormEntry }) {
             {form.embedded ? <SquareArrowOutUpRightIcon /> : <CheckIcon />}
             {form.previewLabel}
           </Button>
-          <ThemeSwitcher />
         </div>
       </header>
 

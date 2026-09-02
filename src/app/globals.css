@@ -241,21 +241,36 @@ html[data-demo-highlight] [data-survey-root] {
   animation: demo-survey-ring 1.9s ease-out infinite;
 }
 
-html[data-demo-highlight] [data-survey-root]::after {
-  content: "SurveyJS renders this";
+/* The label is a button rather than a pseudo-element, because it is also the
+   way out: whoever has seen where the form is drawn can dismiss the ring from
+   the ring itself, which is where they are already looking. */
+[data-survey-outline-label] {
+  display: none;
+}
+
+html[data-demo-highlight] [data-survey-root] [data-survey-outline-label] {
+  display: inline-flex;
   position: absolute;
   top: 0;
   right: 0;
   z-index: 5;
+  align-items: center;
+  gap: 0.375rem;
   padding: 0.25rem 0.5rem;
+  border: 0;
   border-bottom-left-radius: 0.5rem;
   background-color: var(--demo-brand);
   color: var(--demo-brand-foreground, oklch(0.99 0 0));
+  font: inherit;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  pointer-events: none;
+  cursor: pointer;
+}
+
+html[data-demo-highlight] [data-survey-root] [data-survey-outline-label]:hover {
+  filter: brightness(1.08);
 }
 
 @keyframes demo-survey-ring {
@@ -285,4 +300,32 @@ html[data-demo-highlight] [data-survey-root]::after {
 .demo-dock:hover,
 .demo-dock:focus-within {
   opacity: 1;
+}
+
+/* Blocks the encounter note draws with its own `html` questions. The note is a
+   clinical document, so a banner and two levels of callout are part of it — and
+   they are styled here rather than inline so the JSON stays readable. */
+.demo-note-banner,
+.demo-note-alert,
+.demo-note-note {
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.875rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.demo-note-banner {
+  border: 1px solid color-mix(in oklab, var(--demo-brand) 28%, transparent);
+  background-color: color-mix(in oklab, var(--demo-brand) 10%, transparent);
+}
+
+.demo-note-alert {
+  border: 1px solid color-mix(in oklab, var(--destructive) 40%, transparent);
+  background-color: color-mix(in oklab, var(--destructive) 10%, transparent);
+  font-weight: 500;
+}
+
+.demo-note-note {
+  border: 1px solid var(--border);
+  background-color: var(--muted);
 }

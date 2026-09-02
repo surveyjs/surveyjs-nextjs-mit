@@ -3,7 +3,7 @@ export type NavId =
   | "checkout"
   | "records"
   | "embeddedFeedback"
-  | "embeddedCloud"
+  | "embeddedChart"
   | "embeddedClinic";
 
 export interface NavItem {
@@ -51,11 +51,12 @@ export const navItems: readonly NavItem[] = [
     openInNewTab: true,
   },
   {
-    id: "embeddedCloud",
-    label: "Embedded: Cloud Platform",
-    path: "/embedded/cloud",
-    description: "A pricing page whose configurator opens on the account's own numbers.",
-    schemaId: "cloud-platform",
+    id: "embeddedChart",
+    label: "Embedded: Clinician chart",
+    path: "/embedded/chart",
+    description:
+      "A doctor's workspace that is nothing but the survey: eight pages, matrices with totals, calculated scores and a signature.",
+    schemaId: "encounter-note",
     openInNewTab: true,
   },
   {

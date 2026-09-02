@@ -1,8 +1,8 @@
 import {
   checkoutSample,
   clinicVisitSample,
-  cloudPlatformSample,
   customerSatisfactionSample,
+  encounterNoteSample,
   getSchemaDefinition,
   medicalFormSample,
   type SurveyData,
@@ -10,7 +10,6 @@ import {
 } from "@/schemas";
 import {
   CADENCE_USER,
-  CUMULORA_USER,
   RIDGELINE_USER,
   type DemoUser,
 } from "@/components/embedded/demo-accounts";
@@ -95,16 +94,16 @@ export const FORMS: readonly FormEntry[] = [
     prefill: customerSatisfactionSample,
     user: CADENCE_USER,
     href: "/embedded/feedback",
-    previewLabel: "Preview result",
+    previewLabel: "View Result",
     embedded: true,
   }),
-  form("cloud-platform", "cloud-platform.ts", {
-    label: "Platform configurator",
-    hint: "Embedded in a pricing page it re-prices as it is answered.",
-    prefill: cloudPlatformSample,
-    user: CUMULORA_USER,
-    href: "/embedded/cloud",
-    previewLabel: "Preview result",
+  form("encounter-note", "encounter-note.ts", {
+    label: "Encounter note",
+    hint: "The clinician's own note — eight pages, matrices with totals, calculated scores.",
+    prefill: encounterNoteSample,
+    user: RIDGELINE_USER,
+    href: "/embedded/chart",
+    previewLabel: "View Result",
     embedded: true,
   }),
   form("clinic-visit", "clinic-visit.ts", {
@@ -113,7 +112,7 @@ export const FORMS: readonly FormEntry[] = [
     prefill: clinicVisitSample,
     user: RIDGELINE_USER,
     href: "/embedded/clinic",
-    previewLabel: "Preview result",
+    previewLabel: "View Result",
     embedded: true,
   }),
 ] as const;
