@@ -16,20 +16,20 @@ import {
 } from "@/components/embedded/demo-accounts";
 
 /**
- * Every form in the template, in one list, because the admin edits all of them.
+ * Every form in the template, in one list, because one page edits all of them.
  *
  * The template used to carry a `/configure` page per form and a JSON panel inside
- * each embedded demo — four editors for the same job. There is now one: `/admin`,
- * which is also the URL worth sharing, because it is where a visitor sees the
- * three things the library is bought for at once — the definition, the people it
- * is rendered for, and the form that comes out.
+ * each embedded demo — four editors for the same job. There is one now, and it is
+ * a URL worth sharing: the definition on the left, the form it produces on the
+ * right, for any form in the template.
  *
- * `user` is what separates the two halves of the list. The three admin forms are
- * plain: one definition, one form. The three embedded ones are rendered *for
- * somebody* — their JSON reads `{user.something}` — so those get the users pane
- * and a preview that opens the host site as the selected user.
+ * `user` is what separates the two halves of the list. The three template forms
+ * are plain: one definition, one form. The three embedded ones are rendered *for
+ * somebody* — their JSON reads `{user.something}` — so the preview needs an
+ * account to render for, and it uses the first of the demo's preset users. The
+ * users themselves are edited in the demo, in the toolbar's popup.
  */
-export interface AdminForm {
+export interface FormEntry {
   /** The schema id, and the `?form=` value that makes the URL shareable. */
   readonly id: string;
   readonly label: string;
@@ -55,8 +55,8 @@ const SOURCE_ROOT =
 function form(
   id: string,
   file: string,
-  rest: Omit<AdminForm, "id" | "json" | "sourceHref">,
-): AdminForm {
+  rest: Omit<FormEntry, "id" | "json" | "sourceHref">,
+): FormEntry {
   return {
     id,
     json: getSchemaDefinition(id).json,
@@ -65,7 +65,7 @@ function form(
   };
 }
 
-export const ADMIN_FORMS: readonly AdminForm[] = [
+export const FORMS: readonly FormEntry[] = [
   form("medical-form", "medical-form.ts", {
     label: "Claims intake",
     hint: "The patient-intake form on this admin's own Claims page.",
@@ -118,9 +118,9 @@ export const ADMIN_FORMS: readonly AdminForm[] = [
   }),
 ] as const;
 
-export const DEFAULT_ADMIN_FORM_ID = ADMIN_FORMS[0].id;
+export const DEFAULT_FORM_ID = FORMS[0].id;
 
 /** The form `?form=` names, falling back to the first rather than throwing. */
-export function getAdminForm(id: string | null | undefined): AdminForm {
-  return ADMIN_FORMS.find((item) => item.id === id) ?? ADMIN_FORMS[0];
+export function getFormEntry(id: string | null | undefined): FormEntry {
+  return FORMS.find((item) => item.id === id) ?? FORMS[0];
 }

@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { visitSummaryFor, type SurveyData } from "@/schemas";
 import { DemoDock } from "./DemoDock";
+import { DemoUserDialog } from "./DemoUserDialog";
 import { EmbeddedSurvey, SurveyCard } from "./EmbeddedSurvey";
 import {
   ClinicFooter,
@@ -22,8 +23,6 @@ import { CLINIC_PATIENTS } from "@/schemas";
 import type { DemoSurvey } from "./demo-controls";
 
 const ANCHOR = "request";
-/** The practice's own back office, where this form and these charts live. */
-const CLINIC_ADMIN = "/clinic-admin";
 export const RIDGELINE_BRAND = "emerald";
 
 /**
@@ -53,11 +52,9 @@ export function RidgelineDemo({ survey }: { survey: DemoSurvey }) {
     user: RIDGELINE_USER,
     anchorId: ANCHOR,
     brandId: RIDGELINE_BRAND,
-    // The practice owns its records: the toolbar signs in as one of the patients
-    // the admin portal keeps, and changes nothing about them.
+    // Three patients ship with the demo, so the toolbar can sign in as any of
+    // them — the same definition, a different chart.
     roster: CLINIC_PATIENTS,
-    admin: CLINIC_ADMIN,
-    allowUserEdit: false,
   });
 
   const [data, setData] = useState<SurveyData>({});
@@ -137,6 +134,7 @@ export function RidgelineDemo({ survey }: { survey: DemoSurvey }) {
 
       <ClinicFooter />
 
+      <DemoUserDialog {...chrome.userDialogProps} />
       {/* The clinic site has its own light/dark control in its utility bar. */}
       <DemoDock {...chrome.dockProps} showTheme={false} />
     </div>

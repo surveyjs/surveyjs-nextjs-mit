@@ -12,8 +12,8 @@ const allRoutes = [
   ...surveyRoutes,
   "/records",
   // The one editor, on a plain form and on a personalized one.
-  "/admin",
-  "/admin?form=clinic-visit",
+  "/configure",
+  "/configure?form=clinic-visit",
 ];
 
 test("root redirects to the first survey", async ({ page }) => {
@@ -92,7 +92,7 @@ test("an edited JSON is kept in the browser and survives a reload", async ({
     }
   });
 
-  await page.goto("/admin?form=medical-form");
+  await page.goto("/configure?form=medical-form");
   // Monaco is a heavy dynamic import; under parallel workers it needs longer
   // than the default expect timeout.
   await expect(page.locator(".monaco-editor").first()).toBeVisible({
@@ -128,7 +128,7 @@ test("an edited JSON is kept in the browser and survives a reload", async ({
   expect(serverHtml).toContain("Patient Intake");
   await expect(page.getByText("A brand new question")).toBeVisible();
 
-  await page.goto("/admin?form=medical-form");
+  await page.goto("/configure?form=medical-form");
   // Reset is disabled in the server markup and only enables once the saved
   // definition has been read, which happens after hydration.
   await expect(page.locator(".monaco-editor").first()).toBeVisible({
@@ -261,46 +261,61 @@ test("/embedded/feedback renders the same definition differently per user", asyn
   await expect(page.locator("header").first()).toContainText("John Rivera");
 });
 
-test("the demo toolbar sends the definition to the admin", async ({ page }) => {
+test("the demo toolbar links to the one JSON editor", async ({ page }) => {
   await page.goto("/embedded/feedback");
   const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
 
-  // No editor in the host page any more: the form is configured in the admin,
-  // and this link is how a reviewer gets there and back.
-  await expect(dock.getByRole("link", { name: "Configure in admin" })).toHaveAttribute(
+  // No editor in the host page: every form in the template is edited on one
+  // page, and this link opens it on this form.
+  await expect(dock.getByRole("link", { name: "Configure JSON" })).toHaveAttribute(
     "href",
-    "/admin?form=customer-satisfaction",
+    "/configure?form=customer-satisfaction",
   );
 
   // The user, on the other hand, is right here — one popup, one survey.
   const dialog = await openUserDialog(page);
   await expect(dialog).toContainText("The signed-in user");
-  await expect(dialog).toContainText("Users are kept in the admin");
+  await expect(dialog).toContainText("See what the JSON does with it");
 });
 
-test("the demo toolbar links home and can outline the survey", async ({ page }) => {
+test("Login as renders the same definition for a different customer", async ({ page }) => {
+  test.slow();
+  await page.goto("/embedded/feedback");
+  const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
+  const card = page.locator("#feedback");
+
+  // The demo opens as the first preset account: fourteen months in, a ticket
+  // open, so a Support step and no onboarding.
+  await expect(card).toContainText("Hi Alex, how are we doing?");
+  await expect(card).toContainText(/What matters\s*2\s*Support\s*3/);
+  await expect(card).not.toContainText("Getting started");
+
+  await dock.getByRole("button", { name: /Login as: Alex Rivera/ }).click();
+  await page.getByRole("menuitemradio", { name: /Priya Shah/ }).click();
+
+  // Three weeks old, on Free, no ticket: the same JSON now greets somebody else,
+  // derives a different tenure and grows a step that did not exist.
+  await expect(card).toContainText("Hi Priya, how are we doing?");
+  await expect(card).toContainText("One to six months");
+  await expect(card).toContainText(/Getting started\s*2/);
+  await expect(card).not.toContainText(/Support\s*3/);
+  await expect(page.locator("header").first()).toContainText("Priya Shah");
+});
+
+test("the demo links home and outlines where SurveyJS draws", async ({ page }) => {
   await page.goto("/embedded/cloud");
   const dock = page.getByRole("toolbar", { name: "Embedded demo tools" });
-  const html = page.locator("html");
 
   await expect(dock.getByRole("link", { name: "SurveyJS demos" })).toHaveAttribute(
     "href",
     "/claims",
   );
 
-  const card = page.locator("[data-survey-root]");
-  await expect(html).not.toHaveAttribute("data-demo-highlight", /.*/);
-  await expect(card).toHaveCSS("outline-style", "none");
-
-  await dock.getByRole("button", { name: "Highlight SurveyJS Render" }).click();
-
-  // The attribute goes on <html>; what matters is that the rule it keys reaches
-  // the one element marking where SurveyJS draws.
-  await expect(html).toHaveAttribute("data-demo-highlight", "");
-  await expect(card).toHaveCSS("outline-style", "dashed");
-
-  await dock.getByRole("button", { name: "Highlight SurveyJS Render" }).click();
-  await expect(card).toHaveCSS("outline-style", "none");
+  // The attribute goes on <html> for as long as the demo is on screen; what
+  // matters is that the rule it keys reaches the one element marking where
+  // SurveyJS draws, and that nobody has to press anything for it.
+  await expect(page.locator("html")).toHaveAttribute("data-demo-highlight", "");
+  await expect(page.locator("[data-survey-root]")).toHaveCSS("outline-style", "dashed");
 });
 
 test("/embedded/clinic fills the request from the patient's chart", async ({ page }) => {
@@ -334,21 +349,24 @@ test("/embedded/clinic fills the request from the patient's chart", async ({ pag
   await expect(page.locator("#provider-navarro")).toContainText("Requested");
   await expect(page.locator("#location-westbridge")).toContainText("Chosen");
 
-  const dialog = await openUserDialog(page);
+  // Sign in as the patient who has no chart. Same definition, and the form is
+  // the long one: identity to fill in, insurance card fields, an extra page.
+  await dock.getByRole("button", { name: /Login as: Maria Delgado/ }).click();
+  await page.getByRole("menuitemradio", { name: /Priya Raman/ }).click();
 
-  // One switch in the editor, and the chart goes with it: the editor's own panel
-  // is `visibleIf`-gated and clears its answers, so the account really does empty.
-  await expect(dialog).toContainText("What we have on file");
-  await dialog.locator('[data-name="isNewPatient"]').getByText("Yes, nobody on file").click();
-  await expect(dialog).not.toContainText("What we have on file");
-  await expect(dialog.locator("pre")).toContainText('"isNewPatient": true');
-
-  // The answers are still there, and the form around them is the long one.
   await expect(card).toContainText("You are new to Ridgeline");
   await expect(card).toContainText("New here");
   await expect(card).not.toContainText("Is this about something we already treat you for?");
-  await expect(panel).toContainText("Behavioral health");
   await expect(panel).toContainText("New to Ridgeline");
-  // No plan on file any more, so there is nothing to estimate.
+  // No plan on file, so there is nothing to estimate.
   await expect(panel).not.toContainText("$35");
+
+  // And the popup is where that patient's record is edited, with the object the
+  // survey receives shown underneath it.
+  const dialog = await openUserDialog(page);
+  await expect(dialog).toContainText("The signed-in user");
+  await expect(dialog.locator("pre")).toContainText('"isNewPatient": true');
+  await typeInEditor(dialog, "preferredName", "Pri");
+  await expect(card).toContainText("You are new to Ridgeline");
+  await expect(dialog.locator("pre")).toContainText('"preferredName": "Pri"');
 });

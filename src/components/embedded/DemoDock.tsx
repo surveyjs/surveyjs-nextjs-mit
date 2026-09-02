@@ -8,7 +8,6 @@ import {
   LayersIcon,
   MoonIcon,
   RotateCcwIcon,
-  SquareDashedIcon,
   SunIcon,
   UserRoundIcon,
   UsersRoundIcon,
@@ -34,31 +33,27 @@ const HOME = "/claims";
  *
  * Every control exists to make a single claim checkable:
  *
- *  - **the way back to the admin** — the form is a JSON document, and it is
- *    maintained in a back office rather than in the page it is embedded in. What
- *    is saved there is what this page renders, which is the round trip a buyer is
- *    asking about;
+ *  - **Configure JSON** — the form is a JSON document, edited on one page that
+ *    covers every form in the template. What is saved there is what this page
+ *    renders, which is the round trip a buyer is asking about;
  *  - **Prefill / Reset** — so the rest can be shown on a filled form at once;
- *  - **Login as** — the people the back office keeps. The same definition, a
- *    different person, and the form changes shape. Nothing is editable here on
- *    purpose: on the public site a visitor is who they are signed in as. Demos
- *    without a back office of their own instead get an *Edit the user* popup,
- *    whose editor is a SurveyJS survey;
- *  - **Highlight SurveyJS Render** — scrolls to the form and outlines it, which
- *    is the first thing anyone asks when a form looks native to its host.
+ *  - **Login as** — the demo's preset users. The same definition, a different
+ *    person, and the form changes shape;
+ *  - **Edit the user** — that person's record in a popup, whose editor is itself
+ *    a SurveyJS survey with the resulting object shown as JSON underneath;
+ *
+ * The outline around the survey is not in here: it is always on, because "which
+ * part of this page is the form?" is the first thing anyone asks.
  *
  * It is deliberately quiet — half-transparent until pointed at — because the
  * demo's claim is that the survey belongs to the page, and a loud control panel
  * hovering over it would undercut that. Nothing here would ship in a host site.
  */
 export function DemoDock({
-  highlight,
-  onToggleHighlight,
   onPrefill,
   onReset,
   onEditUser,
-  adminHref,
-  adminLabel,
+  configureHref,
   users,
   activeUserId,
   onSelectUser,
@@ -66,15 +61,11 @@ export function DemoDock({
   userOpen,
   showTheme = true,
 }: {
-  highlight: boolean;
-  onToggleHighlight: () => void;
   onPrefill: () => void;
   onReset: () => void;
-  /** Absent where a back office owns the record — then the dropdown is all. */
-  onEditUser?: () => void;
-  /** Where this form is maintained, and what the button says. */
-  adminHref: string;
-  adminLabel: string;
+  onEditUser: () => void;
+  /** The one page this form's JSON is edited on. */
+  configureHref: string;
   /** The users the admin keeps for this demo. One is the shipped default. */
   users: readonly { id: string; name: string }[];
   activeUserId: string;
@@ -114,13 +105,19 @@ export function DemoDock({
 
       {divider}
 
-      <Button asChild variant="ghost" size="sm" className="shrink-0 gap-1.5 rounded-full">
+      {/* The one control that is meant to be pressed, so the one painted in the
+          host brand rather than hidden in the greys. */}
+      <Button
+        asChild
+        size="sm"
+        className="demo-brand-bg text-primary-foreground shrink-0 gap-1.5 rounded-full font-semibold shadow-sm hover:opacity-90"
+      >
         <a
-          href={adminHref}
-          title="Open the back office this form is maintained in — what is saved there is what this page renders"
+          href={configureHref}
+          title="Open this form's JSON — the one page every form in the template is edited on"
         >
           <Code2Icon />
-          {adminLabel}
+          Configure JSON
         </a>
       </Button>
 
@@ -152,11 +149,10 @@ export function DemoDock({
       {users.length > 1 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            {/* The one control meant to be pressed, so the one painted in the
-                host brand rather than hidden in the greys. */}
             <Button
+              variant="ghost"
               size="sm"
-              className="demo-brand-bg text-primary-foreground shrink-0 gap-1.5 rounded-full font-semibold shadow-sm hover:opacity-90"
+              className="shrink-0 gap-1.5 rounded-full"
               title="Sign in as somebody else — the same form, a different person"
             >
               <UsersRoundIcon />
@@ -180,8 +176,7 @@ export function DemoDock({
         </DropdownMenu>
       )}
 
-      {onEditUser && (
-        <Button
+      <Button
           variant={userOpen ? "secondary" : "ghost"}
           size="sm"
           className={cn("shrink-0 gap-1.5 rounded-full", userOpen && "shadow-inner")}
@@ -199,20 +194,7 @@ export function DemoDock({
             />
           )}
         </Button>
-      )}
 
-      <Button
-        variant={highlight ? "secondary" : "ghost"}
-        size="sm"
-        className={cn("shrink-0 gap-1.5 rounded-full", highlight && "shadow-inner")}
-        aria-pressed={highlight}
-        aria-label="Highlight SurveyJS Render"
-        title="Scroll to the form and outline it — everything outside the outline is the host site's own markup"
-        onClick={onToggleHighlight}
-      >
-        <SquareDashedIcon />
-        <span className="hidden sm:inline">Highlight SurveyJS Render</span>
-      </Button>
 
       {/* Only where the host site has no control of its own: a colour scheme is
           the page's business, not the survey's. */}

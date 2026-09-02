@@ -6,11 +6,10 @@ const nav = getNavItem("checkout");
 /**
  * Kept as a redirect, because links to it are already out in the world.
  *
- * Every form in the template is now edited in one place — `/admin`, opened on
- * this form. Three per-form editors meant three places to explain, and the
- * definition, the user it is rendered for and the result were never on screen
- * together.
+ * Every form in the template is now edited in one place — `/configure`, opened
+ * on this form. Three per-form editors meant three places to explain, and none of
+ * them covered the embedded demos.
  */
 export default function ConfigureRedirect() {
-  redirect(`/admin?form=${nav.schemaId}`);
+  redirect(`/configure?form=${nav.schemaId}`);
 }

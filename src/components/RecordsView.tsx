@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import Link from "next/link";
 import type { Model } from "survey-core";
 import type { ClaimRecord, SurveyData, SurveyJSON } from "@/schemas";
 import { deleteResult, saveResult } from "@/storage/survey-results";
+import { configureHref } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import { SurveyForm } from "@/components/SurveyForm";
 import { Badge } from "@/components/ui/badge";
@@ -224,7 +224,7 @@ export function RecordsView({
                       Edit
                     </Button>
                     <Button size="sm" variant="ghost" asChild>
-                      <Link href="/records/configure">Configure Survey JSON</Link>
+                      <a href={configureHref(schemaId)}>Configure Survey JSON</a>
                     </Button>
                   </>
                 ) : (

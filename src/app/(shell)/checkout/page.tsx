@@ -10,7 +10,7 @@ export default function CheckoutPage() {
       <PageHeader
         title={nav.label}
         description={nav.description}
-        configureHref={`/admin?form=${nav.schemaId}`}
+        configureHref={`/configure?form=${nav.schemaId}`}
       />
       <SurveyForm
         schema={getSchemaDefinition(nav.schemaId).json}

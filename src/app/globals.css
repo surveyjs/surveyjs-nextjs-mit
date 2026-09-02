@@ -230,7 +230,7 @@ html[data-demo-brand] {
   color: color-mix(in oklab, var(--demo-brand) 78%, var(--foreground));
 }
 
-/* "Highlight SurveyJS Render" in the demo toolbar sets this attribute on <html>.
+/* An embedded demo sets this attribute on <html> for as long as it is on screen.
    Everything SurveyJS draws lives inside `[data-survey-root]`, so one rule marks
    the boundary between the host site and the form — which is the question every
    reviewer asks about an embedded demo. The ring pulses because a static outline

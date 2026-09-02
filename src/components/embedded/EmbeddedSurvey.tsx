@@ -84,9 +84,9 @@ export function EmbeddedSurvey({
 /**
  * The container a host page puts a form in — a plain shadcn card.
  *
- * `data-survey-root` marks the boundary of what SurveyJS draws, so the toolbar's
- * "Highlight SurveyJS Render" can outline it. Nothing else on these pages carries
- * the attribute: everything outside it is the mock site's own markup.
+ * `data-survey-root` marks the boundary of what SurveyJS draws, which is what the
+ * always-on outline is keyed off. Nothing else on these pages carries the
+ * attribute: everything outside it is the mock site's own markup.
  */
 export function SurveyCard({
   className,

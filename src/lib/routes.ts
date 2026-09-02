@@ -1,4 +1,4 @@
-/** The admin, opened on one form — the link both the demos and the shell use. */
-export function adminHref(formId: string): string {
-  return `/admin?form=${encodeURIComponent(formId)}`;
+/** The survey-JSON page, opened on one form — the link every demo points at. */
+export function configureHref(formId: string): string {
+  return `/configure?form=${encodeURIComponent(formId)}`;
 }

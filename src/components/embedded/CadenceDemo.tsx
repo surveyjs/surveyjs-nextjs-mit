@@ -17,7 +17,7 @@ import { DemoDock } from "./DemoDock";
 import { EmbeddedSurvey, SurveyCard } from "./EmbeddedSurvey";
 import { DemoUserDialog } from "./DemoUserDialog";
 import { useDemoChrome } from "./useDemoChrome";
-import { CADENCE_USER } from "./demo-accounts";
+import { CADENCE_ROSTER, CADENCE_USER } from "./demo-accounts";
 import type { DemoSurvey } from "./demo-controls";
 
 const ANCHOR = "feedback";
@@ -42,6 +42,9 @@ export function CadenceDemo({ survey }: { survey: DemoSurvey }) {
     user: CADENCE_USER,
     anchorId: ANCHOR,
     brandId: CADENCE_BRAND,
+    // Three accounts ship with the demo, so the toolbar can sign in as any of
+    // them — the same definition, a different customer.
+    roster: CADENCE_ROSTER,
   });
 
   return (

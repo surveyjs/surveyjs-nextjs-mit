@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { AdminWorkbench } from "@/components/admin/AdminWorkbench";
+import { JsonWorkbench } from "@/components/configure/JsonWorkbench";
 
 export const metadata: Metadata = {
-  title: "Survey admin — SurveyJS Library + Next.js",
+  title: "Survey JSON — SurveyJS Library + Next.js",
   description:
-    "Edit any form in the template as JSON, choose the user it is rendered for, and open the result where the form actually lives.",
+    "Edit any form in the template as JSON, watch the form follow, and open the page it actually lives in.",
 };
 
 /**
@@ -14,10 +14,10 @@ export const metadata: Metadata = {
  * `?form=` picks which one, so a link to a particular form is shareable; the
  * workbench reads it with `useSearchParams`, hence the Suspense boundary.
  */
-export default function AdminPage() {
+export default function ConfigurePage() {
   return (
     <Suspense fallback={null}>
-      <AdminWorkbench />
+      <JsonWorkbench />
     </Suspense>
   );
 }

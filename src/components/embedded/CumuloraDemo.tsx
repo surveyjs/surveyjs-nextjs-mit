@@ -16,7 +16,7 @@ import {
   QuotePanel,
 } from "./CumuloraPricing";
 import { useDemoChrome } from "./useDemoChrome";
-import { CUMULORA_USER } from "./demo-accounts";
+import { CUMULORA_ROSTER, CUMULORA_USER } from "./demo-accounts";
 import type { DemoSurvey } from "./demo-controls";
 
 const ANCHOR = "configure";
@@ -50,6 +50,9 @@ export function CumuloraDemo({ survey }: { survey: DemoSurvey }) {
     user: CUMULORA_USER,
     anchorId: ANCHOR,
     brandId: CUMULORA_BRAND,
+    // Three CRM records ship with the demo, so the toolbar can sign in as any of
+    // them — the same configurator, a different quote.
+    roster: CUMULORA_ROSTER,
   });
 
   const [data, setData] = useState<SurveyData>({});

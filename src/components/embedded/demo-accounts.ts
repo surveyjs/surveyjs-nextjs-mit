@@ -38,6 +38,12 @@ import {
  * anywhere. Answers in, context object out; `toAccount` is the only translation,
  * and it exists to fill the display labels a dropdown's `value` cannot carry.
  */
+/** One preset user a demo ships with, as the toolbar's picker lists them. */
+export interface DemoRosterEntry {
+  readonly id: string;
+  readonly data: SurveyData;
+}
+
 export interface DemoUser {
   /** The editor form, rendered in the toolbar's popup. */
   readonly json: SurveyJSON;
@@ -204,6 +210,51 @@ export const CADENCE_USER: DemoUser = {
   }),
 };
 
+/**
+ * The accounts the feedback demo ships with.
+ *
+ * Three, because the toolbar's "Login as" is only an argument if the form comes
+ * out differently for each: an established admin with an open ticket, a
+ * three-week-old free account that gets an onboarding page instead of the
+ * plan-fit question, and an enterprise account with a named CSM whose renewal
+ * step nobody else sees. The same JSON in all three cases.
+ */
+export const CADENCE_ROSTER: readonly DemoRosterEntry[] = [
+  { id: "rivera", data: { ...CADENCE_USER.defaults } },
+  {
+    id: "shah",
+    data: {
+      firstName: "Priya",
+      lastName: "Shah",
+      email: "priya.shah@lumenpath.example",
+      company: "Lumenpath",
+      role: "Product designer",
+      plan: "free",
+      seats: 3,
+      monthsActive: 2,
+      openTicket: false,
+      lastTicketSubject: "",
+      csmName: "",
+    },
+  },
+  {
+    id: "herrera",
+    data: {
+      firstName: "Tomás",
+      lastName: "Herrera",
+      email: "t.herrera@meridianfoods.example",
+      company: "Meridian Foods",
+      role: "Director of operations",
+      plan: "enterprise",
+      seats: 480,
+      monthsActive: 31,
+      openTicket: false,
+      lastTicketSubject: "",
+      csmName: "Dana Whitfield",
+    },
+  },
+];
+
 /* ── the CRM record behind a pricing page (cloud demo) ──────────────────────── */
 
 const CUMULORA_REGIONS: readonly Choice[] = [
@@ -305,6 +356,52 @@ export const CUMULORA_USER: DemoUser = {
     regionLabel: labelOf(CUMULORA_REGIONS, data.region),
   }),
 };
+
+/**
+ * The CRM records the pricing demo ships with.
+ *
+ * An existing US customer, an EU prospect on trial — who gets an entire
+ * data-residency page and is asked how far along they are rather than what they
+ * are changing — and a small US prospect whose headcount sizes the configurator
+ * down. One definition, three quotes.
+ */
+export const CUMULORA_ROSTER: readonly DemoRosterEntry[] = [
+  { id: "northwind", data: { ...CUMULORA_USER.defaults } },
+  {
+    id: "brightloom",
+    data: {
+      firstName: "Marta",
+      lastName: "Køhler",
+      email: "marta.kohler@brightloom.example",
+      companyName: "Brightloom GmbH",
+      industry: "Healthcare",
+      region: "eu",
+      employees: 1200,
+      seatsOnFile: 0,
+      existingCustomer: false,
+      currentPlanLabel: "",
+      complianceOnFile: ["hipaa", "residency"],
+      trialDaysLeft: 9,
+    },
+  },
+  {
+    id: "tidewater",
+    data: {
+      firstName: "Sam",
+      lastName: "Okoye",
+      email: "sam@tidewaterlabs.example",
+      companyName: "Tidewater Labs",
+      industry: "Logistics",
+      region: "us",
+      employees: 40,
+      seatsOnFile: 0,
+      existingCustomer: false,
+      currentPlanLabel: "",
+      complianceOnFile: [],
+      trialDaysLeft: 21,
+    },
+  },
+];
 
 /* ── the patient portal record (clinic demo) ────────────────────────────────── */
 

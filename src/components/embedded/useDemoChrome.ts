@@ -3,10 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SurveyData, SurveyJSON } from "@/schemas";
 import { loadSurveyJson } from "@/storage/survey-json";
-import { loadDemoUsers, type DemoUserRecord } from "@/storage/demo-users";
-import { adminHref } from "@/lib/routes";
+import { configureHref } from "@/lib/routes";
 import { DEFAULT_BRAND_ID, applyBrand, getBrand, type DemoSurvey } from "./demo-controls";
-import { accountName, type DemoUser } from "./demo-accounts";
+import { accountName, type DemoRosterEntry, type DemoUser } from "./demo-accounts";
 
 /**
  * Everything the embedded demos have in common, minus the page itself.
@@ -24,9 +23,9 @@ import { accountName, type DemoUser } from "./demo-accounts";
  *     the definition reads it as `{user.something}`.
  *
  * Prefill and Reset are there so the pair can be demonstrated on a full form
- * without typing twelve answers first, and "Highlight SurveyJS Render" answers
- * the question every reviewer asks about an embedded demo: which part of this
- * page is actually the form?
+ * without typing twelve answers first. The outline around the survey is not a
+ * control at all — it is always on, because the first thing anyone asks about an
+ * embedded demo is which part of the page is actually the form.
  */
 export interface DemoChrome {
   readonly survey: DemoSurvey;
@@ -51,15 +50,11 @@ export interface DemoChrome {
   /** Rebuild the survey carrying these answers over — "change my answers". */
   readonly resumeWith: (data: SurveyData) => void;
   readonly dockProps: {
-    highlight: boolean;
-    onToggleHighlight: () => void;
     onPrefill: () => void;
     onReset: () => void;
-    /** Absent when a back office owns the record instead. */
-    onEditUser?: () => void;
-    /** Where this form is maintained, and what the button says. */
-    adminHref: string;
-    adminLabel: string;
+    onEditUser: () => void;
+    /** The one page this form's JSON is edited on. */
+    configureHref: string;
     /** The users the admin keeps for this demo, by display name. */
     users: readonly { id: string; name: string }[];
     activeUserId: string;
@@ -78,7 +73,7 @@ export interface DemoChrome {
     account: Record<string, unknown>;
     edited: boolean;
     onRevert: () => void;
-    adminHref: string;
+    configureHref: string;
   };
 }
 
@@ -109,8 +104,6 @@ export function useDemoChrome({
   anchorId,
   brandId = DEFAULT_BRAND_ID,
   roster,
-  admin,
-  allowUserEdit = true,
 }: {
   survey: DemoSurvey;
   /** The visitor, plus the survey used to edit them. */
@@ -123,22 +116,13 @@ export function useDemoChrome({
    * clinic has a roster of patients, and the toolbar lets a reviewer sign in as
    * any of them.
    */
-  roster?: readonly DemoUserRecord[];
-  /** The back office this form is maintained in, if it has its own. */
-  admin?: string;
-  /**
-   * Whether the toolbar may edit the account in place. Off where a back office
-   * owns the record: a reviewer on the public site picks who they are, and the
-   * chart is changed by staff.
-   */
-  allowUserEdit?: boolean;
+  roster?: readonly DemoRosterEntry[];
 }): DemoChrome {
   // A fresh seed object remounts the survey model, which is what Prefill and
   // Reset want; `runCount` covers resetting when there was nothing to clear.
   const [seed, setSeed] = useState<SurveyData | undefined>(undefined);
   const [runCount, setRunCount] = useState(0);
   const [userOpen, setUserOpen] = useState(false);
-  const [highlight, setHighlight] = useState(false);
 
   useEffect(() => {
     applyBrand(getBrand(brandId));
@@ -147,14 +131,14 @@ export function useDemoChrome({
   // The demo owns the palette only while it is on screen.
   useEffect(() => () => applyBrand(getBrand("neutral")), []);
 
-  // One attribute on <html>; the outline itself is in `globals.css`, keyed off
-  // the `data-survey-root` marker that `SurveyCard` carries.
+  // One attribute on <html> for as long as a demo is on screen; the outline
+  // itself is in `globals.css`, keyed off the `data-survey-root` marker that
+  // `SurveyCard` carries.
   useEffect(() => {
     const root = document.documentElement;
-    if (highlight) root.setAttribute("data-demo-highlight", "");
-    else root.removeAttribute("data-demo-highlight");
+    root.setAttribute("data-demo-highlight", "");
     return () => root.removeAttribute("data-demo-highlight");
-  }, [highlight]);
+  }, []);
 
   /* ── the definition, as the admin left it ────────────────────────────────── */
 
@@ -162,13 +146,12 @@ export function useDemoChrome({
 
   /* ── the user the definition is rendered for ─────────────────────────────── */
 
-  // One record per user, exactly as the admin keeps them: `saved` is what
-  // storage holds, `users` is what this window has since done to it.
-  const defaults = useMemo<readonly DemoUserRecord[]>(
+  // The preset users this demo ships with, and what this window has since done
+  // to them: the popup edits a copy, so Revert has something to go back to.
+  const defaults = useMemo<readonly DemoRosterEntry[]>(
     () => roster ?? [{ id: "default", data: user.defaults }],
     [roster, user.defaults],
   );
-  const [saved, setSaved] = useState(defaults);
   const [users, setUsers] = useState(defaults);
   const [activeUserId, setActiveUserId] = useState(defaults[0].id);
 
@@ -179,34 +162,25 @@ export function useDemoChrome({
   const editorSeed = useRef<SurveyData>(defaults[0].data);
   const [editorRun, setEditorRun] = useState(0);
 
-  // The server always renders the definition and the roster that ship with the
-  // template — the prerendered HTML, the one crawlers get, stays canonical — and
-  // whatever this browser saved in the admin arrives a tick after hydration.
+  // The server always renders the definition that ships with the template — the
+  // prerendered HTML, the one crawlers get, stays canonical — and a visitor who
+  // edited this form on `/configure` gets their own version a tick later.
   useEffect(() => {
     let active = true;
-    void Promise.all([loadSurveyJson(survey.id), loadDemoUsers(survey.id)]).then(
-      ([storedJson, storedUsers]) => {
-        if (!active || (!storedJson && !storedUsers)) return;
-        if (storedUsers) {
-          setSaved(storedUsers);
-          setUsers(storedUsers);
-          setActiveUserId(storedUsers[0].id);
-          editorSeed.current = storedUsers[0].data;
-          setEditorRun((run) => run + 1);
-        }
-        if (storedJson) setJson(storedJson);
-        // A different definition or a different person is a different form, so
-        // the model is rebuilt rather than re-fed.
-        setRunCount((count) => count + 1);
-      },
-    );
+    void loadSurveyJson(survey.id).then((stored) => {
+      if (!active || !stored) return;
+      setJson(stored);
+      // A different definition is a different form, so the model is rebuilt
+      // rather than re-fed.
+      setRunCount((count) => count + 1);
+    });
     return () => {
       active = false;
     };
   }, [survey.id]);
 
   const activeRecord = users.find((record) => record.id === activeUserId) ?? users[0];
-  const savedRecord = saved.find((record) => record.id === activeUserId);
+  const savedRecord = defaults.find((record) => record.id === activeUserId);
 
   // The answers the page is currently rendered from. Debounced away from the
   // editor's own state for the same reason the JSON editor was: typing a name
@@ -250,14 +224,6 @@ export function useDemoChrome({
       document.getElementById(anchorId)?.scrollIntoView({ behavior: "smooth" }),
     );
   }, [anchorId]);
-
-  // Turning the outline on also brings the form into view: on these pages the
-  // survey can easily be below the fold, and an outline nobody can see proves
-  // nothing.
-  const toggleHighlight = useCallback(() => {
-    if (!highlight) revealAnchor();
-    setHighlight((on) => !on);
-  }, [highlight, revealAnchor]);
 
   const restart = useCallback(() => {
     setSeed(undefined);
@@ -315,7 +281,7 @@ export function useDemoChrome({
     setRunCount((count) => count + 1);
   }, [activeUserId, defaults, savedRecord]);
 
-  const href = admin ?? adminHref(survey.id);
+  const href = configureHref(survey.id);
 
   return {
     survey,
@@ -327,13 +293,10 @@ export function useDemoChrome({
     requestSurvey: revealAnchor,
     resumeWith,
     dockProps: {
-      highlight,
-      onToggleHighlight: toggleHighlight,
       onPrefill: prefill,
       onReset: restart,
-      onEditUser: allowUserEdit ? () => setUserOpen((open) => !open) : undefined,
-      adminHref: href,
-      adminLabel: admin ? "Go back to admin" : "Configure in admin",
+      onEditUser: () => setUserOpen((open) => !open),
+      configureHref: href,
       users: userOptions,
       activeUserId: activeRecord.id,
       onSelectUser: selectUser,
@@ -350,7 +313,7 @@ export function useDemoChrome({
       account,
       edited: accountEdited,
       onRevert: revertAccount,
-      adminHref: href,
+      configureHref: href,
     },
   };
 }

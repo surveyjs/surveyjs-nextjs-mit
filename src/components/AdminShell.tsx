@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
 import { ArrowUpRightIcon, LayersIcon, MenuIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,9 +52,6 @@ function Brand() {
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const pathname = usePathname();
-  // The admin is three columns wide; the rest of the shell reads better centred.
-  const isWide = pathname === "/admin";
 
   return (
     <div className="bg-background text-foreground flex h-svh min-h-svh flex-col">
@@ -108,13 +104,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </aside>
 
         <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-          <div
-            className={
-              isWide
-                ? "h-full w-full px-4 py-4 sm:px-6"
-                : "mx-auto h-full w-full max-w-[96rem] px-4 py-6 sm:px-6 lg:py-8"
-            }
-          >
+          <div className="mx-auto h-full w-full max-w-[96rem] px-4 py-6 sm:px-6 lg:py-8">
             {children}
           </div>
         </main>
