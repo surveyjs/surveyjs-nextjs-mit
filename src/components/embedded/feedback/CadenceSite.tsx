@@ -15,9 +15,9 @@ import {
   ZapIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SignedInChip } from "./SignedInChip";
-import { accountText } from "./demo-accounts";
-import { cn } from "@/lib/utils";
+import { SignedInChip } from "../shared/SignedInChip";
+import { accountText } from "../shared/demo-accounts";
+import { mergeTailwindClasses } from "@/lib/utils";
 
 /**
  * A mock marketing site for a fictional product, "Cadence".
@@ -35,7 +35,7 @@ export const PRODUCT = "Cadence";
 export function CadenceMark({ className }: { className?: string }) {
   return (
     <span
-      className={cn(
+      className={mergeTailwindClasses(
         "demo-brand-bg text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-lg",
         className,
       )}
@@ -216,7 +216,7 @@ export function AppPreview() {
               (Icon, index) => (
                 <span
                   key={index}
-                  className={cn(
+                  className={mergeTailwindClasses(
                     "flex size-8 items-center justify-center rounded-md",
                     index === 0 ? "demo-brand-soft" : "text-muted-foreground/60",
                   )}
@@ -249,7 +249,7 @@ export function AppPreview() {
               {BOARD.map((column) => (
                 <div key={column.title} className="min-w-0">
                   <p className="text-muted-foreground mb-2 flex items-center gap-2 text-[11px] font-medium tracking-wide uppercase">
-                    <span className={cn("size-1.5 rounded-full", column.tone)} />
+                    <span className={mergeTailwindClasses("size-1.5 rounded-full", column.tone)} />
                     {column.title}
                   </p>
                   <div className="flex flex-col gap-2">
@@ -279,7 +279,7 @@ export function AppPreview() {
               {[42, 58, 71, 64, 88, 52, 34].map((height, index) => (
                 <span
                   key={index}
-                  className={cn("flex-1 rounded-t", index === 4 ? "demo-brand-bg" : "bg-muted")}
+                  className={mergeTailwindClasses("flex-1 rounded-t", index === 4 ? "demo-brand-bg" : "bg-muted")}
                   style={{ height: `${height}%` }}
                 />
               ))}
@@ -414,7 +414,7 @@ export function Suite() {
           {MODULES.map((entry) => (
             <div
               key={entry.name}
-              className={cn(
+              className={mergeTailwindClasses(
                 "bg-card flex flex-col rounded-xl border p-5",
                 entry.core && "demo-brand-soft border-transparent",
               )}
@@ -425,7 +425,7 @@ export function Suite() {
               </span>
               <p className="mt-4 text-base font-medium">{entry.name}</p>
               <p
-                className={cn(
+                className={mergeTailwindClasses(
                   "mt-2 text-sm leading-relaxed",
                   entry.core ? "opacity-80" : "text-muted-foreground",
                 )}
@@ -554,7 +554,7 @@ export function Pricing() {
         {PLANS.map((plan) => (
           <div
             key={plan.name}
-            className={cn(
+            className={mergeTailwindClasses(
               "bg-card relative flex flex-col rounded-xl border p-6",
               plan.highlighted && "border-transparent shadow-lg",
             )}
@@ -581,7 +581,7 @@ export function Pricing() {
               ))}
             </ul>
             <Button
-              className={cn("mt-6 w-full", plan.highlighted && "demo-brand-bg hover:opacity-90")}
+              className={mergeTailwindClasses("mt-6 w-full", plan.highlighted && "demo-brand-bg hover:opacity-90")}
               variant={plan.highlighted ? "default" : "outline"}
             >
               {plan.cta}

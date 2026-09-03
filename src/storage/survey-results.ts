@@ -1,4 +1,4 @@
-import { insuranceClaimSeed, type ClaimRecord, type SurveyData } from "@/schemas";
+import { insuranceClaimSeed, type SurveyData, type SurveyResult } from "@/schemas";
 
 /**
  * One of the two seams between this template and your storage: the answers
@@ -7,7 +7,7 @@ import { insuranceClaimSeed, type ClaimRecord, type SurveyData } from "@/schemas
  * Nothing else in the app reads or writes a survey result — replace the four
  * bodies below with calls to your API and the rest of the template is untouched:
  *
- *   export async function listResults(): Promise<ClaimRecord[]> {
+ *   export async function listResults(): Promise<SurveyResult[]> {
  *     const res = await fetch("/api/claims", { cache: "no-store" });
  *     if (!res.ok) throw new Error(`GET /api/claims: ${res.status}`);
  *     return res.json();
@@ -27,13 +27,13 @@ import { insuranceClaimSeed, type ClaimRecord, type SurveyData } from "@/schemas
  * away or reload.
  */
 
-let records: ClaimRecord[] = insuranceClaimSeed.map((record) => ({
+let records: SurveyResult[] = insuranceClaimSeed.map((record) => ({
   ...record,
   data: { ...record.data },
 }));
 
 /** All stored records, newest last. Backs the `/records` table. */
-export async function listResults(): Promise<ClaimRecord[]> {
+export async function listResults(): Promise<SurveyResult[]> {
   return records.map((record) => ({ ...record, data: { ...record.data } }));
 }
 
@@ -41,13 +41,13 @@ export async function listResults(): Promise<ClaimRecord[]> {
 export async function saveResult(
   id: string,
   data: SurveyData,
-): Promise<ClaimRecord> {
-  const saved: ClaimRecord = { id, data: { ...data } };
+): Promise<SurveyResult> {
+  const saved: SurveyResult = { id, data: { ...data } };
   const index = records.findIndex((record) => record.id === id);
   records = index === -1
     ? [...records, saved]
     : records.map((record, i) => (i === index ? saved : record));
-  return { ...saved, data: { ...saved.data } };
+  return { id, data: { ...data } };
 }
 
 /** Delete one record. Deleting an unknown id is not an error. */

@@ -2,10 +2,10 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { Model } from "survey-core";
-import type { ClaimRecord, SurveyData, SurveyJSON } from "@/schemas";
+import type { SurveyData, SurveyJSON, SurveyResult } from "@/schemas";
 import { deleteResult, saveResult } from "@/storage/survey-results";
 import { configureHref } from "@/lib/routes";
-import { cn } from "@/lib/utils";
+import { mergeTailwindClasses } from "@/lib/utils";
 import { SurveyForm } from "@/components/SurveyForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ type EditorMode = "edit" | "view";
 
 interface Editor {
   readonly mode: EditorMode;
-  readonly record: ClaimRecord;
+  readonly record: SurveyResult;
   readonly key: number;
 }
 
@@ -66,18 +66,18 @@ export function RecordsView({
   schema: SurveyJSON;
   schemaId: string;
   /** Read on the server by the page, so the first paint is complete. */
-  initialRecords: readonly ClaimRecord[];
+  initialRecords: readonly SurveyResult[];
 }) {
-  const [records, setRecords] = useState<ClaimRecord[]>(() => [...initialRecords]);
+  const [records, setRecords] = useState<SurveyResult[]>(() => [...initialRecords]);
   const [editor, setEditor] = useState<Editor | null>(() => {
     const first = initialRecords[0];
     return first ? { mode: "view", record: first, key: 0 } : null;
   });
-  const [deleteTarget, setDeleteTarget] = useState<ClaimRecord | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SurveyResult | null>(null);
   const [model, setModel] = useState<Model | null>(null);
 
   const open = useCallback(
-    (mode: EditorMode, record: ClaimRecord) =>
+    (mode: EditorMode, record: SurveyResult) =>
       setEditor((prev) => ({ mode, record, key: (prev?.key ?? 0) + 1 })),
     [],
   );
@@ -164,7 +164,7 @@ export function RecordsView({
                     <TableCell>
                       <Badge
                         variant="secondary"
-                        className={cn(
+                        className={mergeTailwindClasses(
                           "capitalize",
                           STATUS_BADGE[String(record.data.status)],
                         )}

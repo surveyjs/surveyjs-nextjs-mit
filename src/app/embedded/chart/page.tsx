@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { ChartDemo, CHART_BRAND } from "@/components/embedded/ChartDemo";
-import { DEMO_SURVEYS } from "@/components/embedded/demo-surveys";
-import { brandBootScript } from "@/components/embedded/demo-controls";
+import { ChartDemo, CHART_BRAND } from "@/components/embedded/chart/ChartDemo";
+import { DEMO_SURVEYS } from "@/components/embedded/shared/demo-surveys";
+import { brandBootScript } from "@/components/embedded/shared/demo-controls";
 
 export const metadata: Metadata = {
   title: "Ridgeline Chart — encounter note",

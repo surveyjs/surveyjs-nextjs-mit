@@ -3,13 +3,13 @@
 import { StethoscopeIcon } from "lucide-react";
 import { CLINIC_PATIENTS } from "@/schemas";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { DemoDock } from "./DemoDock";
-import { DemoUserDialog } from "./DemoUserDialog";
-import { EmbeddedSurvey, SurveyCard } from "./EmbeddedSurvey";
-import { SignedInChip } from "./SignedInChip";
-import { RIDGELINE_USER, accountText } from "./demo-accounts";
-import { useDemoChrome } from "./useDemoChrome";
-import type { DemoSurvey } from "./demo-controls";
+import { DemoDock } from "../shared/DemoDock";
+import { DemoUserDialog } from "../shared/DemoUserDialog";
+import { EmbeddedSurvey, SurveyCard } from "../shared/EmbeddedSurvey";
+import { SignedInChip } from "../shared/SignedInChip";
+import { RIDGELINE_USER, accountText } from "../shared/demo-accounts";
+import { useDemo } from "../shared/useDemo";
+import type { DemoSurvey } from "../shared/demo-controls";
 
 const ANCHOR = "note";
 export const CHART_BRAND = "violet";
@@ -37,7 +37,7 @@ export const CHART_BRAND = "violet";
  * the others do not.
  */
 export function ChartDemo({ survey }: { survey: DemoSurvey }) {
-  const chrome = useDemoChrome({
+  const demo = useDemo({
     survey,
     user: RIDGELINE_USER,
     anchorId: ANCHOR,
@@ -45,7 +45,7 @@ export function ChartDemo({ survey }: { survey: DemoSurvey }) {
     roster: CLINIC_PATIENTS,
   });
 
-  const mrn = accountText(chrome.account, "mrn");
+  const mrn = accountText(demo.account, "mrn");
 
   return (
     <div className="bg-muted/30 text-foreground flex min-h-svh flex-col">
@@ -68,7 +68,7 @@ export function ChartDemo({ survey }: { survey: DemoSurvey }) {
 
           <div className="ml-auto flex items-center gap-2">
             <SignedInChip
-              account={chrome.account}
+              account={demo.account}
               meta={mrn ? `Chart open · MRN ${mrn}` : "Chart open"}
             />
             <ThemeSwitcher />
@@ -80,19 +80,19 @@ export function ChartDemo({ survey }: { survey: DemoSurvey }) {
         <div className="mx-auto w-full max-w-6xl pb-24">
           <SurveyCard>
             <EmbeddedSurvey
-              key={chrome.runKey}
-              json={chrome.json}
-              data={chrome.seed}
-              variables={chrome.variables}
+              key={demo.runKey}
+              json={demo.json}
+              data={demo.seed}
+              variables={demo.variables}
             />
           </SurveyCard>
         </div>
       </main>
 
-      <DemoUserDialog {...chrome.userDialogProps} />
+      <DemoUserDialog {...demo.userDialogProps} />
       {/* The workspace has its own light/dark control in the header. */}
       <DemoDock
-        {...chrome.dockProps}
+        {...demo.dockProps}
         showTheme={false}
         usersLabel="Open chart"
         editLabel="Edit the chart"

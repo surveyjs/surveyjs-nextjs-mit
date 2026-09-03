@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { CadenceDemo, CADENCE_BRAND } from "@/components/embedded/CadenceDemo";
-import { DEMO_SURVEYS } from "@/components/embedded/demo-surveys";
-import { brandBootScript } from "@/components/embedded/demo-controls";
+import { CadenceDemo, CADENCE_BRAND } from "@/components/embedded/feedback/CadenceDemo";
+import { DEMO_SURVEYS } from "@/components/embedded/shared/demo-surveys";
+import { brandBootScript } from "@/components/embedded/shared/demo-controls";
 
 export const metadata: Metadata = {
   title: "Cadence — tell us how we are doing",

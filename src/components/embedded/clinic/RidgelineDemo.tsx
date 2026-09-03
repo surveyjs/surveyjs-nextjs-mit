@@ -2,9 +2,9 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { visitSummaryFor, type SurveyData } from "@/schemas";
-import { DemoDock } from "./DemoDock";
-import { DemoUserDialog } from "./DemoUserDialog";
-import { EmbeddedSurvey, SurveyCard } from "./EmbeddedSurvey";
+import { DemoDock } from "../shared/DemoDock";
+import { DemoUserDialog } from "../shared/DemoUserDialog";
+import { EmbeddedSurvey, SurveyCard } from "../shared/EmbeddedSurvey";
 import {
   ClinicFooter,
   ClinicHeader,
@@ -17,10 +17,10 @@ import {
   ServiceGrid,
   VisitSummaryPanel,
 } from "./RidgelineSite";
-import { useDemoChrome } from "./useDemoChrome";
-import { RIDGELINE_USER } from "./demo-accounts";
+import { useDemo } from "../shared/useDemo";
+import { RIDGELINE_USER } from "../shared/demo-accounts";
 import { CLINIC_PATIENTS } from "@/schemas";
-import type { DemoSurvey } from "./demo-controls";
+import type { DemoSurvey } from "../shared/demo-controls";
 
 const ANCHOR = "request";
 export const RIDGELINE_BRAND = "emerald";
@@ -47,7 +47,7 @@ export const RIDGELINE_BRAND = "emerald";
  * appears that established patients never see.
  */
 export function RidgelineDemo({ survey }: { survey: DemoSurvey }) {
-  const chrome = useDemoChrome({
+  const demo = useDemo({
     survey,
     user: RIDGELINE_USER,
     anchorId: ANCHOR,
@@ -84,13 +84,13 @@ export function RidgelineDemo({ survey }: { survey: DemoSurvey }) {
 
   const changeAnswers = useCallback(() => {
     setSubmitted(false);
-    chrome.resumeWith(data);
-  }, [chrome, data]);
+    demo.resumeWith(data);
+  }, [demo, data]);
 
   return (
     <div className="bg-background text-foreground flex min-h-svh flex-col">
       <ClinicUtilityBar />
-      <ClinicHeader onRequest={chrome.requestSurvey} account={chrome.account} />
+      <ClinicHeader onRequest={demo.requestSurvey} account={demo.account} />
 
       <main className="flex-1">
         <section className="relative overflow-hidden">
@@ -107,10 +107,10 @@ export function RidgelineDemo({ survey }: { survey: DemoSurvey }) {
               <div className="min-w-0">
                 <SurveyCard>
                   <EmbeddedSurvey
-                    key={chrome.runKey}
-                    json={chrome.json}
-                    data={chrome.seed}
-                    variables={chrome.variables}
+                    key={demo.runKey}
+                    json={demo.json}
+                    data={demo.seed}
+                    variables={demo.variables}
                     onDataChange={handleDataChange}
                     onComplete={handleComplete}
                   />
@@ -129,14 +129,14 @@ export function RidgelineDemo({ survey }: { survey: DemoSurvey }) {
         <ProviderDirectory selectedId={summary.provider?.id ?? null} />
         <LocationCards selectedId={summary.location?.id ?? null} />
         <CoverageSection summary={summary} />
-        <NewPatientSection onRequest={chrome.requestSurvey} />
+        <NewPatientSection onRequest={demo.requestSurvey} />
       </main>
 
       <ClinicFooter />
 
-      <DemoUserDialog {...chrome.userDialogProps} />
+      <DemoUserDialog {...demo.userDialogProps} />
       {/* The clinic site has its own light/dark control in its utility bar. */}
-      <DemoDock {...chrome.dockProps} showTheme={false} />
+      <DemoDock {...demo.dockProps} showTheme={false} />
     </div>
   );
 }

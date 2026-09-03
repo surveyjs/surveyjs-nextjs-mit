@@ -12,7 +12,7 @@ import {
   CADENCE_USER,
   RIDGELINE_USER,
   type DemoUser,
-} from "@/components/embedded/demo-accounts";
+} from "@/components/embedded/shared/demo-accounts";
 
 /**
  * Every form in the template, in one list, because one page edits all of them.

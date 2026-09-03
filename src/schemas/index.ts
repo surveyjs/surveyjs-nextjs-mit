@@ -23,7 +23,7 @@ export { clinicVisitSample } from "./data/clinic-visit-seed";
 export { customerSatisfactionSample } from "./data/customer-satisfaction-seed";
 export { planFinderSample } from "./data/plan-finder-seed";
 export { encounterNoteSample } from "./data/encounter-note-seed";
-export { insuranceClaimSeed, type ClaimRecord } from "./data/insurance-claim-seed";
+export { insuranceClaimSeed, type SurveyResult } from "./data/insurance-claim-seed";
 
 export {
   createSurveyModel,

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { accountInitials, accountName } from "./demo-accounts";
-import { cn } from "@/lib/utils";
+import { mergeTailwindClasses } from "@/lib/utils";
 
 /**
  * The "signed in as" corner every real product has, in the host site's header.
@@ -34,7 +34,7 @@ export function SignedInChip({
 
   return (
     <span
-      className={cn(
+      className={mergeTailwindClasses(
         "bg-background/60 flex items-center gap-2 rounded-full border py-1 pr-3 pl-1",
         className,
       )}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { RidgelineDemo, RIDGELINE_BRAND } from "@/components/embedded/RidgelineDemo";
-import { DEMO_SURVEYS } from "@/components/embedded/demo-surveys";
-import { brandBootScript } from "@/components/embedded/demo-controls";
+import { RidgelineDemo, RIDGELINE_BRAND } from "@/components/embedded/clinic/RidgelineDemo";
+import { DEMO_SURVEYS } from "@/components/embedded/shared/demo-surveys";
+import { brandBootScript } from "@/components/embedded/shared/demo-controls";
 
 export const metadata: Metadata = {
   title: "Ridgeline Family Health — request an appointment",

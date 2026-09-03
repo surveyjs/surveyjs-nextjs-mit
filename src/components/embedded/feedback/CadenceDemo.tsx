@@ -13,12 +13,12 @@ import {
   Suite,
   Testimonials,
 } from "./CadenceSite";
-import { DemoDock } from "./DemoDock";
-import { EmbeddedSurvey, SurveyCard } from "./EmbeddedSurvey";
-import { DemoUserDialog } from "./DemoUserDialog";
-import { useDemoChrome } from "./useDemoChrome";
-import { CADENCE_ROSTER, CADENCE_USER } from "./demo-accounts";
-import type { DemoSurvey } from "./demo-controls";
+import { DemoDock } from "../shared/DemoDock";
+import { EmbeddedSurvey, SurveyCard } from "../shared/EmbeddedSurvey";
+import { DemoUserDialog } from "../shared/DemoUserDialog";
+import { useDemo } from "../shared/useDemo";
+import { CADENCE_ROSTER, CADENCE_USER } from "../shared/demo-accounts";
+import type { DemoSurvey } from "../shared/demo-controls";
 
 const ANCHOR = "feedback";
 export const CADENCE_BRAND = "indigo";
@@ -26,7 +26,7 @@ export const CADENCE_BRAND = "indigo";
 /**
  * Embedded demo: an ordinary product marketing site with a survey in its hero.
  *
- * The page it lives on has no admin chrome by design — see `src/app/layout.tsx`
+ * The page it lives on has no admin demo by design — see `src/app/layout.tsx`
  * and the `(shell)` route group — and the sidebar entry opens it in a new tab so
  * nothing of this template frames it.
  *
@@ -37,7 +37,7 @@ export const CADENCE_BRAND = "indigo";
  * JSON, reading `{user.…}` — see `demo-accounts.ts`.
  */
 export function CadenceDemo({ survey }: { survey: DemoSurvey }) {
-  const chrome = useDemoChrome({
+  const demo = useDemo({
     survey,
     user: CADENCE_USER,
     anchorId: ANCHOR,
@@ -49,16 +49,16 @@ export function CadenceDemo({ survey }: { survey: DemoSurvey }) {
 
   return (
     <div className="bg-background text-foreground flex min-h-svh flex-col">
-      <SiteHeader onFeedback={chrome.requestSurvey} account={chrome.account} />
+      <SiteHeader onFeedback={demo.requestSurvey} account={demo.account} />
 
       <main className="flex-1">
         <Hero>
           <SurveyCard>
             <EmbeddedSurvey
-              key={chrome.runKey}
-              json={chrome.json}
-              data={chrome.seed}
-              variables={chrome.variables}
+              key={demo.runKey}
+              json={demo.json}
+              data={demo.seed}
+              variables={demo.variables}
             />
           </SurveyCard>
         </Hero>
@@ -70,13 +70,13 @@ export function CadenceDemo({ survey }: { survey: DemoSurvey }) {
         <Suite />
         <Testimonials />
         <Pricing />
-        <ClosingBand onFeedback={chrome.requestSurvey} />
+        <ClosingBand onFeedback={demo.requestSurvey} />
       </main>
 
       <SiteFooter />
 
-      <DemoUserDialog {...chrome.userDialogProps} />
-      <DemoDock {...chrome.dockProps} />
+      <DemoUserDialog {...demo.userDialogProps} />
+      <DemoDock {...demo.dockProps} />
     </div>
   );
 }

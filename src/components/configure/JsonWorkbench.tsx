@@ -13,10 +13,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { EmbeddedSurvey, SurveyCard } from "@/components/embedded/EmbeddedSurvey";
+import { EmbeddedSurvey, SurveyCard } from "@/components/embedded/shared/EmbeddedSurvey";
 import { StaticAnalysisBar, type LintMarker } from "@/components/lint/StaticAnalysisBar";
 import type { JsonEditorApi } from "@/components/JsonEditor";
-import { accountName, usedVariableKeys } from "@/components/embedded/demo-accounts";
+import { accountName, usedVariableKeys } from "@/components/embedded/shared/demo-accounts";
 import { loadSurveyJson, resetSurveyJson, saveSurveyJson } from "@/storage/survey-json";
 import type { SurveyJSON } from "@/schemas";
 import { type FormEntry, getFormEntry } from "./forms";

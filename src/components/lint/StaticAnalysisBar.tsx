@@ -11,9 +11,9 @@ import {
 import { getRules, lintSurvey } from "survey-core/linter";
 import type { ILintFinding, ISurveyLintResult } from "survey-core/linter";
 import { Button } from "@/components/ui/button";
-import { buildPathIndex, locatePath } from "@/lib/lint/locate";
-import { lintMutations } from "@/lib/lint/mutations";
-import { cn } from "@/lib/utils";
+import { buildPathIndex, locatePath } from "@/lib/lint/monaco-adapter";
+import { lintMutations } from "@/lib/lint/try-breaking-it";
+import { mergeTailwindClasses } from "@/lib/utils";
 
 export interface LintMarker {
   readonly path: string;
@@ -226,7 +226,7 @@ export function StaticAnalysisBar({
           <CircleDashedIcon className="text-muted-foreground size-4 shrink-0" />
         ) : failed ? (
           <TriangleAlertIcon
-            className={cn("size-4 shrink-0", severityClass.warning)}
+            className={mergeTailwindClasses("size-4 shrink-0", severityClass.warning)}
           />
         ) : (
           <CheckIcon className="size-4 shrink-0" />
@@ -288,7 +288,7 @@ export function StaticAnalysisBar({
                 <div key={rule.id} className="mt-3">
                   <p className="flex items-center gap-2 font-medium">
                     <TriangleAlertIcon
-                      className={cn(
+                      className={mergeTailwindClasses(
                         "size-3.5 shrink-0",
                         severityClass[items[0].finding.severity],
                       )}
@@ -310,7 +310,7 @@ export function StaticAnalysisBar({
                               onSelectPath(item.finding.path);
                               if (item.line !== null) onRevealLine(item.line);
                             }}
-                            className={cn(
+                            className={mergeTailwindClasses(
                               "hover:bg-accent/60 w-full rounded-md border px-2 py-1.5 text-left",
                               active && "bg-accent/60 border-foreground/30",
                             )}

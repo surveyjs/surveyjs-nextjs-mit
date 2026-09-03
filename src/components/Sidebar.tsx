@@ -13,7 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { isActiveRoute, navItems, type NavId, type NavItem } from "@/schemas";
-import { cn } from "@/lib/utils";
+import { mergeTailwindClasses } from "@/lib/utils";
 
 const ICONS: Record<NavId, LucideIcon> = {
   claims: ClipboardListIcon,
@@ -32,7 +32,7 @@ function ItemBody({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <>
       <Icon
-        className={cn(
+        className={mergeTailwindClasses(
           "mt-0.5 size-4 shrink-0",
           active
             ? "text-sidebar-accent-foreground"
@@ -70,7 +70,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               target="_blank"
               rel="noreferrer"
               onClick={onNavigate}
-              className={cn(
+              className={mergeTailwindClasses(
                 ITEM_CLASS,
                 "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
               )}
@@ -86,7 +86,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             href={item.path}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
-            className={cn(
+            className={mergeTailwindClasses(
               ITEM_CLASS,
               active
                 ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"

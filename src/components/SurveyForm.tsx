@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2Icon } from "lucide-react";
 import { Survey } from "survey-react-ui";
-import type { Model, Question } from "survey-core";
+import type { Model as SurveyModel, Question } from "survey-core";
 import {
   createSurveyModel,
   type SchemaInput,
@@ -19,9 +19,35 @@ import "survey-core/themes/adapters/shadcn-base-nova.css";
 import "@/styles/survey-overrides-shadcn.css";
 import "@/styles/survey-overrides-base-nova.css";
 
-/** Minimum time the spinner stays on screen. */
-const SPINNER_MIN_MS = 300;
-
+/**
+ * A survey definition, rendered. This is the whole integration:
+ *
+ * ```tsx
+ * const model = createSurveyModel(schema, { data, mode });
+ * return <Survey model={model} />;
+ * ```
+ *
+ * Two lines, both below, and there is no third one hiding anywhere: no wrapper
+ * component per form, no field registry, no adapter between the JSON and the
+ * inputs. The four CSS imports above are the theme, and the survey then takes
+ * its colours, radius and light/dark from the same shadcn tokens as the rest of
+ * the app.
+ *
+ * Everything else in this file is convenience *this template* wanted, and each
+ * piece is one hook you can delete without touching the rest:
+ *
+ *  - {@link useSavedDefinition} — swap in the definition a visitor edited on
+ *    `/configure`, on the client only, so the server keeps sending the canonical
+ *    form;
+ *  - {@link usePrefillAction} — the "Prefill demo data" button in the survey's
+ *    own navigation bar, for filling a long form in front of an audience;
+ *  - {@link useSubmission} — what happens on completion: hand the answers to the
+ *    caller, or POST them through the storage seam.
+ *
+ * Server rendering needs nothing special: this component is a client component
+ * because survey-react-ui uses browser APIs, but Next.js still prerenders it, so
+ * the form is in the HTML the server sends. See `/claims` — view source.
+ */
 export function SurveyForm({
   schema,
   schemaId,
@@ -36,123 +62,55 @@ export function SurveyForm({
   schema: SchemaInput;
   /**
    * When set, a survey definition saved in localStorage under this id replaces
-   * `schema` on the client. The server always renders `schema` itself, so the
-   * prerendered HTML — the one crawlers get — stays canonical.
+   * `schema` on the client, and a completed form is submitted under it.
    */
   schemaId?: string;
   data?: SurveyData;
   mode?: SurveyMode;
   /**
-   * Called instead of {@link submitResponse} when the caller owns
-   * persistence itself, as the records page does.
+   * Called instead of {@link submitResult} when the caller owns persistence
+   * itself, as the records page does.
    */
   onComplete?: (data: SurveyData) => void;
   completedMessage?: string;
   prefillData?: SurveyData;
   prefillLabel?: string;
-  onModelReady?: (model: Model) => void;
+  onModelReady?: (model: SurveyModel) => void;
 }) {
-  const [effectiveSchema, setEffectiveSchema] = useState<SchemaInput>(schema);
-  // Set only on the client, and only for a visitor who has their own saved
-  // definition; cleared by survey-core's own "rendered" event below.
-  const [swapping, setSwapping] = useState(false);
+  const { definition, swapping } = useSavedDefinition(schema, schemaId);
 
-  // The spinner only appears once the store has answered with a definition, so
-  // a visitor who has none never sees a loading state. Against localStorage the
-  // answer arrives in a microtask, before the browser paints; against a real
-  // server the canonical form is briefly visible first, which is honest.
-  useEffect(() => {
-    if (!schemaId) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let active = true;
-
-    void loadSurveyJson(schemaId).then((saved) => {
-      if (!active || !saved) return;
-      setSwapping(true);
-
-      // Let the browser paint the spinner, then swap. The delay is a floor, not
-      // the cost of the work: rebuilding the model and rendering the survey
-      // measures about 30ms, so without it the spinner lives a single frame and
-      // reads as a blink.
-      timer = setTimeout(() => {
-        setEffectiveSchema(saved);
-        setSwapping(false);
-      }, SPINNER_MIN_MS);
-    });
-
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [schemaId, schema]);
-
+  // The two lines that are the actual integration.
   const model = useMemo(
-    () => createSurveyModel(effectiveSchema, { data, mode }),
-    [effectiveSchema, data, mode],
+    () => createSurveyModel(definition, { data, mode }),
+    [definition, data, mode],
   );
+
+  usePrefillAction(model, prefillData, prefillLabel);
+  const { completed, resume } = useSubmission(model, onComplete, schemaId);
 
   useEffect(() => {
     onModelReady?.(model);
   }, [model, onModelReady]);
 
-  useEffect(() => {
-    if (!prefillData) return;
-    const id = "sv-prefill-demo";
-    model.addNavigationItem({
-      id,
-      title: prefillLabel,
-      action: () => {
-        const names = new Set(
-          model.currentPage.questions.map((q: Question) => q.getValueName()),
-        );
-        model.mergeData(
-          Object.fromEntries(
-            Object.entries(prefillData).filter(([key]) => names.has(key)),
-          ),
-        );
-      },
-    });
-    return () => {
-      model.navigationBar.removeActionById(id);
-    };
-  }, [model, prefillData, prefillLabel]);
-
-  const [completed, setCompleted] = useState(false);
-  useEffect(() => setCompleted(false), [model]);
-  useEffect(() => {
-    const handler = (sender: typeof model) => {
-      setCompleted(true);
-      if (onComplete) {
-        onComplete(sender.data);
-      } else if (schemaId) {
-        void submitResult(schemaId, sender.data);
-      }
-    };
-    model.onComplete.add(handler);
-    return () => model.onComplete.remove(handler);
-  }, [model, onComplete, schemaId]);
-
-  const handleEdit = () => {
+  const editAgain = useCallback(() => {
     model.clear(false);
-    setCompleted(false);
-  };
+    resume();
+  }, [model, resume]);
 
   if (completed) {
-    return <FormCompleted message={completedMessage} onEdit={handleEdit} />;
+    return <FormCompleted message={completedMessage} onEdit={editAgain} />;
   }
 
   // The survey stays mounted while swapping — it has to, otherwise it never
   // renders and never reports that it is done. The spinner covers it instead.
   return (
-    <div className="relative">
+    <div className="relative overflow-hidden border">
       <div className={swapping ? "invisible" : undefined}>
-        <div className="border overflow-hidden">
-          <Survey model={model} />
-        </div>
+        <Survey model={model} />
       </div>
       {swapping && (
         <div
-          className="bg-background absolute inset-0 flex min-h-96 items-center justify-center border"
+          className="bg-background absolute inset-0 flex min-h-96 items-center justify-center"
           role="status"
           aria-label="Loading..."
         >
@@ -161,4 +119,135 @@ export function SurveyForm({
       )}
     </div>
   );
+}
+
+/** Minimum time the spinner stays on screen. */
+const SPINNER_MIN_MS = 300;
+
+/**
+ * The definition to render: the one that ships, or this browser's edited copy.
+ *
+ * The server always renders `schema` itself — the prerendered HTML, the one
+ * crawlers get, stays canonical — and a visitor who edited this form on
+ * `/configure` gets their own version a tick later.
+ *
+ * The spinner only appears once the store has answered with a definition, so a
+ * visitor who has none never sees a loading state. Against localStorage the
+ * answer arrives in a microtask, before the browser paints; against a real
+ * server the canonical form is briefly visible first, which is honest.
+ */
+function useSavedDefinition(
+  schema: SchemaInput,
+  schemaId?: string,
+): { definition: SchemaInput; swapping: boolean } {
+  const [saved, setSaved] = useState<SchemaInput | null>(null);
+  const [swapping, setSwapping] = useState(false);
+
+  useEffect(() => {
+    // A different form starts from its own canonical definition again.
+    setSaved(null);
+    if (!schemaId) return;
+
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    void loadSurveyJson(schemaId).then((stored) => {
+      if (!active || !stored) return;
+      setSwapping(true);
+
+      // Let the browser paint the spinner, then swap. The delay is a floor, not
+      // the cost of the work: rebuilding the model and rendering the survey
+      // measures about 30ms, so without it the spinner lives a single frame and
+      // reads as a blink.
+      timer = setTimeout(() => {
+        setSaved(stored);
+        setSwapping(false);
+      }, SPINNER_MIN_MS);
+    });
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [schema, schemaId]);
+
+  return { definition: saved ?? schema, swapping };
+}
+
+/**
+ * "Prefill demo data", added to the survey's own navigation bar.
+ *
+ * `addNavigationItem` is why there is no button in the JSX: the control belongs
+ * to the survey, sits beside Next and Complete, and is themed with them. It
+ * fills the page in view rather than the whole form, so a demo can walk one
+ * page at a time.
+ */
+function usePrefillAction(
+  model: SurveyModel,
+  prefillData: SurveyData | undefined,
+  prefillLabel: string,
+): void {
+  useEffect(() => {
+    if (!prefillData) return;
+    const id = "sv-prefill-demo";
+
+    model.addNavigationItem({
+      id,
+      title: prefillLabel,
+      action: () => {
+        const onThisPage = new Set(
+          model.currentPage.questions.map((question: Question) =>
+            question.getValueName(),
+          ),
+        );
+        model.mergeData(
+          Object.fromEntries(
+            Object.entries(prefillData).filter(([name]) => onThisPage.has(name)),
+          ),
+        );
+      },
+    });
+
+    return () => {
+      model.navigationBar.removeActionById(id);
+    };
+  }, [model, prefillData, prefillLabel]);
+}
+
+/**
+ * What a completed form does with its answers.
+ *
+ * `onComplete` wins where the caller owns persistence — the records page writes
+ * the record itself — and otherwise the answers go through the storage seam,
+ * which is where a real app POSTs them. `resume` is the "Edit response" way back
+ * from the thank-you screen.
+ */
+function useSubmission(
+  model: SurveyModel,
+  onComplete: ((data: SurveyData) => void) | undefined,
+  schemaId: string | undefined,
+): { completed: boolean; resume: () => void } {
+  const [completed, setCompleted] = useState(false);
+
+  // A rebuilt model is a fresh form: a saved definition arrived, or the records
+  // page opened another record.
+  useEffect(() => setCompleted(false), [model]);
+
+  useEffect(() => {
+    const handler = (sender: SurveyModel) => {
+      setCompleted(true);
+      if (onComplete) {
+        onComplete(sender.data);
+      } else if (schemaId) {
+        void submitResult(schemaId, sender.data);
+      }
+    };
+
+    model.onComplete.add(handler);
+    return () => model.onComplete.remove(handler);
+  }, [model, onComplete, schemaId]);
+
+  const resume = useCallback(() => setCompleted(false), []);
+
+  return { completed, resume };
 }

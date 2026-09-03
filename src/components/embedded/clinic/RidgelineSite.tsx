@@ -35,9 +35,9 @@ import {
 } from "@/schemas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SignedInChip } from "./SignedInChip";
-import { accountText } from "./demo-accounts";
-import { cn } from "@/lib/utils";
+import { SignedInChip } from "../shared/SignedInChip";
+import { accountText } from "../shared/demo-accounts";
+import { mergeTailwindClasses } from "@/lib/utils";
 
 /**
  * Ridgeline Family Health — a fictional US primary-care group.
@@ -403,7 +403,7 @@ export function ProviderDirectory({ selectedId }: { selectedId: string | null })
             <div
               key={provider.id}
               id={`provider-${provider.id}`}
-              className={cn(
+              className={mergeTailwindClasses(
                 "bg-card scroll-mt-24 rounded-xl border p-5 transition-shadow",
                 selectedId === provider.id ? "border-primary shadow-md" : "",
               )}
@@ -461,7 +461,7 @@ export function LocationCards({ selectedId }: { selectedId: string | null }) {
             <div
               key={location.id}
               id={`location-${location.id}`}
-              className={cn(
+              className={mergeTailwindClasses(
                 "bg-card scroll-mt-24 rounded-xl border p-5 transition-shadow",
                 selectedId === location.id ? "border-primary shadow-md" : "",
               )}
@@ -527,7 +527,7 @@ export function CoverageSection({ summary }: { summary: VisitSummary }) {
             {HEALTH_PLANS.map((plan) => (
               <li
                 key={plan.id}
-                className={cn(
+                className={mergeTailwindClasses(
                   "bg-card flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border px-4 py-3 text-sm",
                   summary.plan?.id === plan.id ? "border-primary shadow-sm" : "",
                 )}

@@ -1,7 +1,7 @@
 import type { SurveyData } from "../types";
 
-/** A persisted claim record: an id plus the survey response data. */
-export interface ClaimRecord {
+/** One stored submission: an id plus the survey response data. */
+export interface SurveyResult {
   readonly id: string;
   readonly data: SurveyData;
 }
@@ -10,7 +10,7 @@ export interface ClaimRecord {
  * Seed/demo records for the insurance-claim CRUD entity, shaped to match
  * `insuranceClaimJson` question names. The Records list/detail pages read these.
  */
-export const insuranceClaimSeed: ClaimRecord[] = [
+export const insuranceClaimSeed: SurveyResult[] = [
   {
     id: "CLM-2026-0001",
     data: {

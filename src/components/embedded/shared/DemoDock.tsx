@@ -23,7 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { mergeTailwindClasses } from "@/lib/utils";
 
 /** Where the demos came from — the template's own admin shell. */
 const HOME = "/claims";
@@ -189,7 +189,7 @@ export function DemoDock({
       <Button
           variant={userOpen ? "secondary" : "ghost"}
           size="sm"
-          className={cn("shrink-0 gap-1.5 rounded-full", userOpen && "shadow-inner")}
+          className={mergeTailwindClasses("shrink-0 gap-1.5 rounded-full", userOpen && "shadow-inner")}
           aria-pressed={userOpen}
           aria-label={editLabel}
           title="Change the signed-in user the form is rendered for — the editor is a SurveyJS form too"

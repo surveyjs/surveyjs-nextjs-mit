@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { Survey } from "survey-react-ui";
 import type { Model } from "survey-core";
 import { createSurveyModel, type SurveyData, type SurveyJSON } from "@/schemas";
-import { cn } from "@/lib/utils";
+import { mergeTailwindClasses } from "@/lib/utils";
 
 import "survey-core/survey-core.css";
 import "survey-core/themes/adapters/shadcn-base-nova.css";
@@ -109,7 +109,7 @@ export function SurveyCard({
   return (
     <div
       data-survey-root=""
-      className={cn(
+      className={mergeTailwindClasses(
         "bg-card relative overflow-hidden rounded-xl border shadow-sm",
         className,
       )}

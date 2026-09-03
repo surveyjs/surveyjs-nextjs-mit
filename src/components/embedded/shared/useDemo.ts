@@ -27,7 +27,7 @@ import { accountName, type DemoRosterEntry, type DemoUser } from "./demo-account
  * control at all — it is always on, because the first thing anyone asks about an
  * embedded demo is which part of the page is actually the form.
  */
-export interface DemoChrome {
+export interface Demo {
   readonly survey: DemoSurvey;
   /** The definition to render: the shipped one, or this browser's saved one. */
   readonly json: SurveyJSON;
@@ -97,7 +97,7 @@ function stableJson(value: SurveyData): string {
   );
 }
 
-export function useDemoChrome({
+export function useDemo({
   survey,
   user,
   /** Element the form lives in, so the demo can scroll back to it. */
@@ -117,7 +117,7 @@ export function useDemoChrome({
    * any of them.
    */
   roster?: readonly DemoRosterEntry[];
-}): DemoChrome {
+}): Demo {
   // A fresh seed object remounts the survey model, which is what Prefill and
   // Reset want; `runCount` covers resetting when there was nothing to clear.
   const [seed, setSeed] = useState<SurveyData | undefined>(undefined);
